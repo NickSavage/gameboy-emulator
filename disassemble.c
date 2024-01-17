@@ -1,9 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+static const int REG_B = 0;
+static const int REG_C = 1;
+static const int REG_D = 2;
+static const int REG_E = 3;
+static const int REG_H = 4;
+static const int REG_L = 5;
+static const int REG_F = 6;
 static const int REG_A = 7;
-static const char *regNames[] = {"b", "c", "d", "e", "h", "l", "[HL]", "a"};
+
+static const char *regNames[] = {"b", "c", "d", "e", "h", "l", "f", "a"};
+int8_t memory[65535];
 int8_t regs[] = {0,0,0,0,0,0,0,0};
+int16_t pc = 0;
 
 void printByteAsBinary(unsigned char byte) {
     for (int i = 7; i >= 0; i--) {
@@ -50,7 +60,6 @@ unsigned char* readFile(char *filename, size_t* size) {
     fclose(file);
     return buffer;
 };
-
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
@@ -123,16 +132,26 @@ int main(int argc, char *argv[]) {
 	    i += 3;
 	    header = 0;
 	}
+
 	if ((byte & 0b11000111) == 0b00000110) {
 	    // load register immediate
-	    printf("asdsa");
 	    printByteAsBinary(fileData[i + 1]);
 	    int reg = (byte & 0b00111000) >> 3;
 	    printf(" ld %s, %d", regNames[reg], fileData[i + 1]);
+	    printf(" -- %d -- ", reg);
 	    regs[reg] = fileData[i + 1];
 	    i++;
 	}
+	else if ((byte & 0b11000111) == 0b01000110) {
+	    // ld r, (HL)
+	    int addr = (regs[REG_H] << 8) + regs[REG_L];
+	    printf(" -- %d --", addr);
+	    printf(" ld a, [HL]");
+	    regs[REG_A] = memory[addr];
+
+	}
 	else if ((fileData[i] & 0b11000000) == 0b01000000) {
+	    // ld r, r
 	    // load reg (reg)
 	    int dest = (byte & 0b00111000) >> 3;
 	    int src = (byte & 0b00000111);
@@ -169,6 +188,19 @@ int main(int argc, char *argv[]) {
 	    printf(" sub a, %d", fileData[i + 1]);
 	    regs[REG_A] -= fileData[i + 1];
 	    i++;
+	}
+	else if ((byte & 0b11111111) == 0b00100010) {
+	    // ld (HL+), a
+	    int addr = (regs[REG_H] << 8) + regs[REG_L];
+	    printf(" -- %d --", addr);
+	    
+	    printf(" ld [HL+], a");
+	    memory[addr] = regs[REG_A];
+
+	    addr -= 1;
+	    regs[REG_H] = addr >> 8;
+	    regs[REG_L] = addr & 0xFF;
+	    
 	}
 	putchar('\n');
     }
