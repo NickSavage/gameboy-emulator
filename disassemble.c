@@ -157,9 +157,18 @@ int main(int argc, char *argv[]) {
 	    i++;
 	}
 	else if ((fileData[i] & 0b11111000) == 0b10010000) {
+	    // sub r
 	    int reg = (byte & 0b00111000) >> 3;
 	    printf(" sub a, %s", regNames[reg]);
 	    regs[REG_A] -= regs[reg]; 
+	}
+	else if ((fileData[i] & 0b11111111) == 0b11010110) {
+	    // sub n
+	    printByteAsBinary(fileData[i + 1]);
+	    putchar(' ');
+	    printf(" sub a, %d", fileData[i + 1]);
+	    regs[REG_A] -= fileData[i + 1];
+	    i++;
 	}
 	putchar('\n');
     }
