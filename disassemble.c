@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+static const int REG_A = 7;
 static const char *regNames[] = {"b", "c", "d", "e", "h", "l", "[HL]", "a"};
+int8_t regs[] = {0,0,0,0,0,0,0,0};
 
 void printByteAsBinary(unsigned char byte) {
     for (int i = 7; i >= 0; i--) {
@@ -123,9 +125,11 @@ int main(int argc, char *argv[]) {
 	}
 	if ((byte & 0b11000111) == 0b00000110) {
 	    // load register immediate
+	    printf("asdsa");
 	    printByteAsBinary(fileData[i + 1]);
 	    int reg = (byte & 0b00111000) >> 3;
 	    printf(" ld %s, %d", regNames[reg], fileData[i + 1]);
+	    regs[reg] = fileData[i + 1];
 	    i++;
 	}
 	else if ((fileData[i] & 0b11000000) == 0b01000000) {
@@ -133,18 +137,36 @@ int main(int argc, char *argv[]) {
 	    int dest = (byte & 0b00111000) >> 3;
 	    int src = (byte & 0b00000111);
 	    printf(" ld %s, %s", regNames[dest], regNames[src]);
+	    regs[dest] = regs[src];
+	}
+	else if ((fileData[i] & 0b11111000) == 0b10000000) {
+	    // add r
+	    int reg = (byte & 0b00111000) >> 3;
+	    printf(" add %s", regNames[reg]);
+
+	    regs[REG_A] += regs[reg];
 	    
 	}
 	else if ((fileData[i] & 0b11111111) == 0b11000110) {
+	    // add n
 	    printByteAsBinary(fileData[i + 1]);
 	    putchar(' ');
 	    printf(" add a, %d", fileData[i + 1]);
+	    regs[REG_A] += fileData[i + 1];
+	    printf("-%d-", regs[REG_A]);
 	    i++;
+	}
+	else if ((fileData[i] & 0b11111000) == 0b10010000) {
+	    int reg = (byte & 0b00111000) >> 3;
+	    printf(" sub a, %s", regNames[reg]);
+	    regs[REG_A] -= regs[reg]; 
 	}
 	putchar('\n');
     }
     putchar('\n');
-
+    for (int i = 0; i < 8; i++) {
+	printf("%s: %d\n", regNames[i],regs[i]);
+    }
     // Free the memory
     free(fileData);
 
