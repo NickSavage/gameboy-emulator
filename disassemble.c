@@ -128,12 +128,18 @@ int main(int argc, char *argv[]) {
 	    printf(" ld %s, %d", regNames[reg], fileData[i + 1]);
 	    i++;
 	}
-	if ((fileData[i] & 0b11000000) == 0b01000000) {
+	else if ((fileData[i] & 0b11000000) == 0b01000000) {
 	    // load reg (reg)
 	    int dest = (byte & 0b00111000) >> 3;
 	    int src = (byte & 0b00000111);
 	    printf(" ld %s, %s", regNames[dest], regNames[src]);
 	    
+	}
+	else if ((fileData[i] & 0b11111111) == 0b11000110) {
+	    printByteAsBinary(fileData[i + 1]);
+	    putchar(' ');
+	    printf(" add a, %d", fileData[i + 1]);
+	    i++;
 	}
 	putchar('\n');
     }
