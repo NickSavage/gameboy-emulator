@@ -1,7 +1,8 @@
 SECTION "Main", ROM0	
-ld A, 1
-ld B, A
-ld C, [HL]
-ld [HL], 8
-ld [HL], C
-ld A, [BC]
+	ld a, 18
+	ld h, 7
+	ld l, 8
+	ld [HL+], a
+	ld l, 8
+	ld a, 0
+	ld a, [HL]

@@ -61,6 +61,82 @@ unsigned char* readFile(char *filename, size_t* size) {
     return buffer;
 };
 
+int parse_opcode(unsigned char first, unsigned char second, unsigned char third) {
+    
+    int ret = 0;
+    if ((first & 0b11000111) == 0b00000110) {
+	// load register immediate
+	printByteAsBinary(second);
+	int reg = (first & 0b00111000) >> 3;
+	printf(" ld %s, %d", regNames[reg], second);
+	printf(" -- %d -- ", reg);
+	regs[reg] = second;
+	ret = 1;
+    }
+    else if ((first & 0b11000111) == 0b01000110) {
+	// ld r, (HL)
+	int addr = (regs[REG_H] << 8) + regs[REG_L];
+	printf(" -- %d --", addr);
+	printf(" ld a, [HL]");
+	regs[REG_A] = memory[addr];
+    }
+    else if ((first & 0b11000000) == 0b01000000) {
+	// ld r, r
+	// load reg (reg)
+	int dest = (first & 0b00111000) >> 3;
+	int src = (first & 0b00000111);
+	printf(" ld %s, %s", regNames[dest], regNames[src]);
+	regs[dest] = regs[src];
+    }
+    else if ((first & 0b11111000) == 0b10000000) {
+	// add r
+	int reg = (first & 0b00111000) >> 3;
+	printf(" add %s", regNames[reg]);
+	
+	regs[REG_A] += regs[reg];
+	
+    }
+    else if ((first & 0b11111111) == 0b11000110) {
+	// add n
+	printByteAsBinary(second);
+	putchar(' ');
+	printf(" add a, %d", second);
+	regs[REG_A] += second;
+	printf("-%d-", regs[REG_A]);
+	ret = 1;
+    }
+    else if ((first & 0b11111000) == 0b10010000) {
+	// sub r
+	int reg = (first & 0b00111000) >> 3;
+	printf(" sub a, %s", regNames[reg]);
+	regs[REG_A] -= regs[reg]; 
+	ret = 1;
+    }
+    else if ((first & 0b11111111) == 0b11010110) {
+	// sub n
+	printByteAsBinary(second);
+	putchar(' ');
+	printf(" sub a, %d", second);
+	regs[REG_A] -= second;
+	ret = 1;
+    }
+    else if ((first & 0b11111111) == 0b00100010) {
+	// ld (HL+), a
+	int addr = (regs[REG_H] << 8) + regs[REG_L];
+	printf(" -- %d --", addr);
+	
+	printf(" ld [HL+], a");
+	memory[addr] = regs[REG_A];
+	
+	addr -= 1;
+	regs[REG_H] = addr >> 8;
+	regs[REG_L] = addr & 0xFF;
+	
+    }
+    putchar('\n');
+    return ret;
+}
+
 int main(int argc, char *argv[]) {
     if (argc != 2) {
         printf("Usage: %s <filename>\n", argv[0]);
@@ -133,76 +209,7 @@ int main(int argc, char *argv[]) {
 	    header = 0;
 	}
 
-	if ((byte & 0b11000111) == 0b00000110) {
-	    // load register immediate
-	    printByteAsBinary(fileData[i + 1]);
-	    int reg = (byte & 0b00111000) >> 3;
-	    printf(" ld %s, %d", regNames[reg], fileData[i + 1]);
-	    printf(" -- %d -- ", reg);
-	    regs[reg] = fileData[i + 1];
-	    i++;
-	}
-	else if ((byte & 0b11000111) == 0b01000110) {
-	    // ld r, (HL)
-	    int addr = (regs[REG_H] << 8) + regs[REG_L];
-	    printf(" -- %d --", addr);
-	    printf(" ld a, [HL]");
-	    regs[REG_A] = memory[addr];
-
-	}
-	else if ((fileData[i] & 0b11000000) == 0b01000000) {
-	    // ld r, r
-	    // load reg (reg)
-	    int dest = (byte & 0b00111000) >> 3;
-	    int src = (byte & 0b00000111);
-	    printf(" ld %s, %s", regNames[dest], regNames[src]);
-	    regs[dest] = regs[src];
-	}
-	else if ((fileData[i] & 0b11111000) == 0b10000000) {
-	    // add r
-	    int reg = (byte & 0b00111000) >> 3;
-	    printf(" add %s", regNames[reg]);
-
-	    regs[REG_A] += regs[reg];
-	    
-	}
-	else if ((fileData[i] & 0b11111111) == 0b11000110) {
-	    // add n
-	    printByteAsBinary(fileData[i + 1]);
-	    putchar(' ');
-	    printf(" add a, %d", fileData[i + 1]);
-	    regs[REG_A] += fileData[i + 1];
-	    printf("-%d-", regs[REG_A]);
-	    i++;
-	}
-	else if ((fileData[i] & 0b11111000) == 0b10010000) {
-	    // sub r
-	    int reg = (byte & 0b00111000) >> 3;
-	    printf(" sub a, %s", regNames[reg]);
-	    regs[REG_A] -= regs[reg]; 
-	}
-	else if ((fileData[i] & 0b11111111) == 0b11010110) {
-	    // sub n
-	    printByteAsBinary(fileData[i + 1]);
-	    putchar(' ');
-	    printf(" sub a, %d", fileData[i + 1]);
-	    regs[REG_A] -= fileData[i + 1];
-	    i++;
-	}
-	else if ((byte & 0b11111111) == 0b00100010) {
-	    // ld (HL+), a
-	    int addr = (regs[REG_H] << 8) + regs[REG_L];
-	    printf(" -- %d --", addr);
-	    
-	    printf(" ld [HL+], a");
-	    memory[addr] = regs[REG_A];
-
-	    addr -= 1;
-	    regs[REG_H] = addr >> 8;
-	    regs[REG_L] = addr & 0xFF;
-	    
-	}
-	putchar('\n');
+	i += parse_opcode(fileData[i], fileData[i + 1], fileData[i + 2]);
     }
     putchar('\n');
     for (int i = 0; i < 8; i++) {
