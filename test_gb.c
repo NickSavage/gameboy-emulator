@@ -60,6 +60,13 @@ void test_set_h_flag() {
     assert(get_h_flag(&cpu) == 0);
 }
 
+void test_set_mem() {
+    struct CPU cpu;
+    int16_t addr = 0xFF40;
+    assert(cpu.memory[addr] == 0);
+    set_mem(&cpu, 0xFF40, 1);
+    assert(cpu.memory[addr] == 1);
+}
 
 
 int main() {
@@ -69,5 +76,6 @@ int main() {
     test_set_n_flag();
     test_set_c_flag();
     test_set_h_flag();
+    test_set_mem();
     printf("\n");
 }

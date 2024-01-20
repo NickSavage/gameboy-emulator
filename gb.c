@@ -82,9 +82,20 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	printByteAsBinary(third);
 	putchar(' ');
 	int addr = (third << 8) + second;
-	printf(" ld a, [%d]", addr);
+	printf(" ld a, [%x]", addr);
 	load_reg(cpu, REG_A, cpu->memory[addr]);
 
+	ret = 2;
+    }
+    else if ((first & 0b11111111) == 0b11101010) {
+	// ld [nn], a
+	printByteAsBinary(second);
+	putchar(' ');
+	printByteAsBinary(third);
+	putchar(' ');
+	int addr = (third << 8) + second;
+	printf(" ld [%x], a", addr);
+	set_mem(cpu, addr, cpu->regs[REG_A]);
 	ret = 2;
     }
     else if ((first & 0b11000111) == 0b01000110) {
@@ -266,7 +277,7 @@ int main(int argc, char *argv[]) {
 	    running = 0;
 	}
 
-	if (ppc == 9) {
+	if (ppc == 15) {
 	    break;
 	}
     }

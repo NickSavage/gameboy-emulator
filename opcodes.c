@@ -69,6 +69,10 @@ void load_reg(struct CPU *cpu, unsigned char reg, unsigned char amount) {
     cpu->regs[reg] = amount;
 }
 
+void set_mem(struct CPU *cpu, int16_t addr, int8_t amount) {
+    cpu->memory[addr] = amount;
+}
+
 void add(struct CPU *cpu, unsigned char amount) {
     cpu->regs[REG_A] += amount;
 
