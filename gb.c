@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "opcodes.h"
+
 static const int REG_B = 0;
 static const int REG_C = 1;
 static const int REG_D = 2;
@@ -23,15 +25,6 @@ static const int COND_C = 3;
 static const char *regNames[] = {"b", "c", "d", "e", "h", "l", "f", "a"};
 
 int16_t ppc;
-
-int8_t regs[] = {0,0,0,0,0,0,0,0};
-
-struct CPU {
-    int8_t memory[65535];
-    int8_t rom[32768];
-    int16_t pc;
-    //int8_t regs[8];
-};
 
 void init_cpu(struct CPU *cpu) {
     cpu->pc = 36;
@@ -84,43 +77,9 @@ unsigned char* readFile(char *filename, size_t* size) {
     return buffer;
 };
 
-int check_flag_c() {
-    int ret = (regs[REG_F] & 0b00010000) >> FLAG_C;
+int check_flag_c(struct CPU *cpu) {
+    int ret = (cpu->regs[REG_F] & 0b00010000) >> FLAG_C;
     return ret;
-}
-void set_z_flag() {
-    if (regs[REG_A] == 0) {
-	regs[REG_F] |= 1 << FLAG_Z;
-    } else {
-	regs[REG_F] |= 0 << FLAG_Z;
-    }
-}
-
-void add(unsigned char amount) {
-    regs[REG_A] += amount;
-
-    set_z_flag();
-    
-    regs[REG_F] |= 0 << FLAG_N;
-    printf("%d, %d", regs[REG_A], amount);
-    if ((regs[REG_A]) < 0) {
-	regs[REG_F] |= 1 << FLAG_C;
-    } else {
-	regs[REG_F] |= 0 << FLAG_C;
-    }
-}
-
-void sub(unsigned char amount) {
-    regs[REG_A] -= amount;
-    
-    set_z_flag();
-    regs[REG_F] |= 1 << FLAG_N;
-    if ((regs[REG_A] - amount) < 0) {
-	regs[REG_F] |= 1 << FLAG_C;
-    } else {
-	regs[REG_F] |= 0 << FLAG_C;
-    }
-    
 }
 
 int parse_opcode(struct CPU *cpu, int pc) {
@@ -137,25 +96,25 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	int reg = (first & 0b00111000) >> 3;
 	printf(" ld %s, %d", regNames[reg], second);
 	printf(" -- %d -- ", reg);
-	regs[reg] = second;
+	cpu->regs[reg] = second;
 	ret = 1;
     }
     else if ((first & 0b11000111) == 0b01000110) {
 	// ld r, (HL)
-	int addr = (regs[REG_H] << 8) + regs[REG_L];
+	int addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
 	printf(" -- %d --", addr);
 	printf(" ld a, [HL]");
-	regs[REG_A] = cpu->memory[addr];
+	load_reg(cpu, REG_A, cpu->memory[addr]);
     }
     else if ((first & 0b11111000) == 0b01110000) {
 	// ld (HL), r
 	
-	int addr = (regs[REG_H] << 8) + regs[REG_L];
+	int addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
 	int src = (first & 0b00000111);
 	
 	printf(" ld [HL], %s", regNames[src]);
 
-	cpu->memory[addr] = regs[src];
+	cpu->memory[addr] = cpu->regs[src];
     }
     else if ((first & 0b11000000) == 0b01000000) {
 	// ld r, r
@@ -163,12 +122,12 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	int dest = (first & 0b00111000) >> 3;
 	int src = (first & 0b00000111);
 	printf(" ld %s, %s", regNames[dest], regNames[src]);
-	regs[dest] = regs[src];
+	cpu->regs[dest] = cpu->regs[src];
     }
     else if ((first & 0b11111111) == 0b00110110) {
 	// ld (HL), n
 
-	int addr = (regs[REG_H] << 8) + regs[REG_L];
+	int addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
 	
 	cpu->memory[addr] = second;
 	ret = 1;
@@ -176,9 +135,9 @@ int parse_opcode(struct CPU *cpu, int pc) {
     else if ((first & 0b11111111) == 0b00001010) {
 	// ld a, (BC)
 	
-	int addr = (regs[REG_B] << 8) + regs[REG_C];
+	int addr = (cpu->regs[REG_B] << 8) + cpu->regs[REG_C];
 	
-	regs[REG_A] = cpu->memory[addr];
+	cpu->regs[REG_A] = cpu->memory[addr];
 	ret = 1;
     }
     else if ((first & 0b11111000) == 0b10000000) {
@@ -186,14 +145,14 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	int reg = (first & 0b00111000) >> 3;
 	printf(" add %s", regNames[reg]);
 	
-	add(regs[reg]);
+	add(cpu, cpu->regs[reg]);
     }
     else if ((first & 0b11111111) == 0b11000110) {
 	// add n
 	printByteAsBinary(second);
 	putchar(' ');
 	printf(" add a, %d", second);
-	add(second);
+	add(cpu, second);
 
 	ret = 1;
     }
@@ -201,7 +160,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	// sub r
 	int reg = (first & 0b00111000) >> 3;
  	printf(" sub a, %s", regNames[reg]);
-	sub(regs[reg]);
+	sub(cpu, cpu->regs[reg]);
 	
 	ret = 1;
     }
@@ -210,20 +169,20 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	printByteAsBinary(second);
 	putchar(' ');
 	printf(" sub a, %d", second);
-	sub(second);
+	sub(cpu, second);
 	ret = 1;
     }
     else if ((first & 0b11111111) == 0b00100010) {
 	// ld (HL+), a
-	int addr = (regs[REG_H] << 8) + regs[REG_L];
+	int addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
 	printf(" -- %d --", addr);
 	
 	printf(" ld [HL+], a");
-	cpu->memory[addr] = regs[REG_A];
+	cpu->memory[addr] = cpu->regs[REG_A];
 	
 	addr -= 1;
-	regs[REG_H] = addr >> 8;
-	regs[REG_L] = addr & 0xFF;
+	cpu->regs[REG_H] = addr >> 8;
+	cpu->regs[REG_L] = addr & 0xFF;
 	
     }
     else if ((first & 0b11111111) == 0b11000011) {
@@ -243,10 +202,13 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	int addr = (third << 8) + second;
 	printf(" JP %d, %d", cc, addr);
 
-	if (cc == COND_NC && !(check_flag_c() == 1)) {
+	if (cc == COND_NC && !(check_flag_c(cpu) == 1)) {
 	    ppc = addr;
-	} else if (cc == COND_C && (check_flag_c() == 1)) {
+	} else if (cc == COND_C && (check_flag_c(cpu) == 1)) {
 	    ppc = addr;
+	} else {
+	    
+	    ret = 2;
 	}
 	
     }
@@ -269,10 +231,10 @@ int main(int argc, char *argv[]) {
     printf("%d", cpu.pc);
 
     unsigned char *data = readFile(argv[1], &size);
-    for (int i; i < size; i++) {
+    for (int i = 0; i < size; i++) {
 	cpu.rom[i] = data[i];
     }
-    ppc = 36;
+    ppc = 110;
     
     printf("%d", cpu.rom);
     while(running != 0) {
@@ -287,9 +249,9 @@ int main(int argc, char *argv[]) {
     putchar('\n');
     for (int i = 0; i < 8; i+=2) {
 	printf("%s%s:", regNames[i],regNames[i + 1]);
-	printByteAsBinary(regs[i]);
+	printByteAsBinary(cpu.regs[i]);
 	putchar(' ');
-	printByteAsBinary(regs[i+1]);
+	printByteAsBinary(cpu.regs[i+1]);
 	putchar('\n');
     }
     // Free the memory
