@@ -1,6 +1,17 @@
 
 #include "cpu.h"
 
+void printByteAsBinary(unsigned char byte);
+
+void set_n_flag(struct CPU *cpu, int bit);
+void set_c_flag(struct CPU *cpu, int bit);
+void set_h_flag(struct CPU *cpu, int bit);
+
+int get_z_flag(struct CPU *cpu);
+int get_n_flag(struct CPU *cpu);
+int get_c_flag(struct CPU *cpu);
+int get_h_flag(struct CPU *cpu);
+
 void load_reg(struct CPU *cpu, unsigned char reg, unsigned char amount);
 void add(struct CPU *cpu, unsigned char amount);
 void sub(struct CPU *cpu, unsigned char amount);

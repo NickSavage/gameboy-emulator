@@ -13,12 +13,6 @@ void init_cpu(struct CPU *cpu) {
 }
     
 
-void printByteAsBinary(unsigned char byte) {
-    for (int i = 7; i >= 0; i--) {
-        putchar((byte & (1 << i)) ? '1' : '0');
-    }
-}
-
 unsigned char* readFile(char *filename, size_t* size) {
     
     FILE *file;
@@ -166,6 +160,12 @@ int parse_opcode(struct CPU *cpu, int pc) {
 
 	compare(cpu, second);
 	ret = 1;
+    }
+    else if ((first & 0b11111000) == 0b10101000) {
+	int reg = (first & 0b00000111);
+	printf( "xor %s", regNames[reg]);
+
+	xor(cpu, reg);
     }
     else if ((first & 0b11111111) == 0b11010110) {
 	// sub n
