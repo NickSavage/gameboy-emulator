@@ -22,15 +22,13 @@ static const int COND_C = 3;
 
 static const char *regNames[] = {"b", "c", "d", "e", "h", "l", "f", "a"};
 
-int8_t memory[65535];
-int8_t rom[32768];
 int16_t ppc;
 
 int8_t regs[] = {0,0,0,0,0,0,0,0};
 
 struct CPU {
-    //    int8_t mem[65535];
-    //int8_t rom[32768];
+    int8_t memory[65535];
+    int8_t rom[32768];
     int16_t pc;
     //int8_t regs[8];
 };
@@ -82,9 +80,6 @@ unsigned char* readFile(char *filename, size_t* size) {
 
     *size = file_size;
     // Close the file
-    for (int i; i < file_size; i++) {
-	rom[i] = buffer[i];
-    }
     fclose(file);
     return buffer;
 };
@@ -128,8 +123,12 @@ void sub(unsigned char amount) {
     
 }
 
-int parse_opcode(unsigned char first, unsigned char second, unsigned char third) {
+int parse_opcode(struct CPU *cpu, int pc) {
     
+    unsigned char first = cpu->rom[pc];
+    unsigned char second = cpu->rom[pc + 1];
+    unsigned char third = cpu->rom[pc + 2];
+
     int ret = 0;
     if ((first & 0b11000111) == 0b00000110) {
 	// ld r, n
@@ -146,7 +145,7 @@ int parse_opcode(unsigned char first, unsigned char second, unsigned char third)
 	int addr = (regs[REG_H] << 8) + regs[REG_L];
 	printf(" -- %d --", addr);
 	printf(" ld a, [HL]");
-	regs[REG_A] = memory[addr];
+	regs[REG_A] = cpu->memory[addr];
     }
     else if ((first & 0b11111000) == 0b01110000) {
 	// ld (HL), r
@@ -156,7 +155,7 @@ int parse_opcode(unsigned char first, unsigned char second, unsigned char third)
 	
 	printf(" ld [HL], %s", regNames[src]);
 
-	memory[addr] = regs[src];
+	cpu->memory[addr] = regs[src];
     }
     else if ((first & 0b11000000) == 0b01000000) {
 	// ld r, r
@@ -171,7 +170,7 @@ int parse_opcode(unsigned char first, unsigned char second, unsigned char third)
 
 	int addr = (regs[REG_H] << 8) + regs[REG_L];
 	
-	memory[addr] = second;
+	cpu->memory[addr] = second;
 	ret = 1;
     }
     else if ((first & 0b11111111) == 0b00001010) {
@@ -179,7 +178,7 @@ int parse_opcode(unsigned char first, unsigned char second, unsigned char third)
 	
 	int addr = (regs[REG_B] << 8) + regs[REG_C];
 	
-	regs[REG_A] = memory[addr];
+	regs[REG_A] = cpu->memory[addr];
 	ret = 1;
     }
     else if ((first & 0b11111000) == 0b10000000) {
@@ -220,7 +219,7 @@ int parse_opcode(unsigned char first, unsigned char second, unsigned char third)
 	printf(" -- %d --", addr);
 	
 	printf(" ld [HL+], a");
-	memory[addr] = regs[REG_A];
+	cpu->memory[addr] = regs[REG_A];
 	
 	addr -= 1;
 	regs[REG_H] = addr >> 8;
@@ -262,23 +261,24 @@ int main(int argc, char *argv[]) {
     }
 
     size_t size;
-    unsigned char *fileData;
 
     int running = 1;
     
-    /* struct CPU cpu; */
-    /* init_cpu(&cpu); */
-    /* printf("%d", cpu.pc); */
+    struct CPU cpu;
+    init_cpu(&cpu);
+    printf("%d", cpu.pc);
 
-    fileData = readFile(argv[1], &size);
-
+    unsigned char *data = readFile(argv[1], &size);
+    for (int i; i < size; i++) {
+	cpu.rom[i] = data[i];
+    }
     ppc = 36;
     
+    printf("%d", cpu.rom);
     while(running != 0) {
-	printByteAsBinary(rom[ppc]);
+	printByteAsBinary(cpu.rom[ppc]);
 	putchar(' ');
-	ppc += parse_opcode(rom[ppc], rom[ppc + 1], rom[ppc + 2]);
-	
+	ppc += parse_opcode(&cpu, ppc);
 	ppc++;
 	if (ppc > size) {
 	    running = 0;
@@ -293,7 +293,7 @@ int main(int argc, char *argv[]) {
 	putchar('\n');
     }
     // Free the memory
-    free(fileData);
+    free(data);
 
     return 0;
 }
