@@ -59,7 +59,9 @@ void sub(struct CPU *cpu, unsigned char amount) {
 }
 
 void compare(struct CPU *cpu, unsigned char amount) {
+    printf("--%d--", cpu->regs[REG_A]);
     int result = cpu->regs[REG_A] - amount;
+    printf("  --  %d, %d -- ", cpu->regs[REG_A], result);
 
     if (result == 0) {
 	cpu->regs[REG_F] |= 1 << FLAG_Z;

@@ -28,6 +28,7 @@ int16_t ppc;
 
 void init_cpu(struct CPU *cpu) {
     cpu->pc = 36;
+    cpu->memory[0xFF44] = 144; // set vblank to start?
 }
     
 
