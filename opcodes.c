@@ -97,9 +97,7 @@ void sub(struct CPU *cpu, unsigned char amount) {
 }
 
 void compare(struct CPU *cpu, unsigned char amount) {
-    printf("--%d--", cpu->regs[REG_A]);
     int result = cpu->regs[REG_A] - amount;
-    printf("  --  %d, %d -- ", cpu->regs[REG_A], result);
 
     if (result == 0) {
 	cpu->regs[REG_F] |= 1 << FLAG_Z;
@@ -117,12 +115,8 @@ void compare(struct CPU *cpu, unsigned char amount) {
 void xor(struct CPU *cpu, unsigned char reg) {
     cpu->regs[REG_A] = cpu->regs[REG_A] ^ cpu->regs[reg];
 
-    printByteAsBinary(cpu->regs[REG_F]);
-    putchar(' ');
     set_z_flag(cpu);
     set_n_flag(cpu, 0);
     set_c_flag(cpu, 0);
     set_h_flag(cpu, 0);
-    printByteAsBinary(cpu->regs[REG_F]);
-    putchar(' ');
 }
