@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+//#include "opcodes"
 
 static const int REG_B = 0;
 static const int REG_C = 1;
@@ -102,6 +103,7 @@ void add(unsigned char amount) {
 	regs[REG_F] |= 0 << FLAG_C;
     }
 }
+
 
 void sub(unsigned char amount) {
     regs[REG_A] -= amount;
