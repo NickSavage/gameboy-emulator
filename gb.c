@@ -99,6 +99,18 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	cpu->regs[reg] = second;
 	ret = 1;
     }
+    else if ((first & 0b11111111) == 0b11111010 ) {
+	// ld a, [nn]
+	printByteAsBinary(second);
+	putchar(' ');
+	printByteAsBinary(third);
+	putchar(' ');
+	int addr = (third << 8) + second;
+	printf(" ld a, [%d]", addr);
+	load_reg(cpu, REG_A, cpu->memory[addr]);
+
+	ret = 2;
+    }
     else if ((first & 0b11000111) == 0b01000110) {
 	// ld r, (HL)
 	int addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
@@ -164,6 +176,15 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	
 	ret = 1;
     }
+    else if ((first & 0b11111111) == 0b11111110) {
+	//cp n
+	printByteAsBinary(second);
+	putchar(' ');
+	printf(" cp %d", second);
+
+	compare(cpu, second);
+	ret = 1;
+    }
     else if ((first & 0b11111111) == 0b11010110) {
 	// sub n
 	printByteAsBinary(second);
@@ -189,7 +210,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	// jp
 	int addr = (third << 8) + second;
 	printf(" JP %d", addr);
-	ppc = addr;
+	ppc = addr - 1;
     }
     else if ((first & 0b11100111) == 0b11000010) {
 	// jp cc, nn
@@ -203,12 +224,28 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	printf(" JP %d, %d", cc, addr);
 
 	if (cc == COND_NC && !(check_flag_c(cpu) == 1)) {
-	    ppc = addr;
+	    ppc = addr - 1;
 	} else if (cc == COND_C && (check_flag_c(cpu) == 1)) {
-	    ppc = addr;
+	    ppc = addr - 1;
 	} else {
 	    
 	    ret = 2;
+	}
+	
+    }
+    else if ((first & 0b11100111) == 0b00100000) {
+	// jr cc, nn
+	printByteAsBinary(second);
+	putchar(' ');
+	printByteAsBinary(third);
+	putchar(' ');
+	
+	int cc = (first & 0b00011000) >> 3;
+	printf(" JR %d, %d", cc, (int8_t)second);
+
+	ret = 1;
+	if (cc == COND_C && (check_flag_c(cpu) == 1)) {
+	    ppc += (int8_t)second;
 	}
 	
     }
@@ -234,16 +271,21 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < size; i++) {
 	cpu.rom[i] = data[i];
     }
-    ppc = 110;
+    ppc = 0x0100;
     
     printf("%d", cpu.rom);
     while(running != 0) {
+	printf("%x - ", ppc);
 	printByteAsBinary(cpu.rom[ppc]);
 	putchar(' ');
 	ppc += parse_opcode(&cpu, ppc);
 	ppc++;
 	if (ppc > size) {
 	    running = 0;
+	}
+
+	if (ppc == 9) {
+	    break;
 	}
     }
     putchar('\n');

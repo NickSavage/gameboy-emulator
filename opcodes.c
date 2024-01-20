@@ -57,3 +57,19 @@ void sub(struct CPU *cpu, unsigned char amount) {
     }
     
 }
+
+void compare(struct CPU *cpu, unsigned char amount) {
+    int result = cpu->regs[REG_A] - amount;
+
+    if (result == 0) {
+	cpu->regs[REG_F] |= 1 << FLAG_Z;
+    } else {
+	cpu->regs[REG_F] |= 0 << FLAG_Z;
+    }
+    cpu->regs[REG_F] |= 1 << FLAG_N;
+    if (result < 0) {
+	cpu->regs[REG_F] |= 1 << FLAG_C;
+    } else {
+	cpu->regs[REG_F] |= 0 << FLAG_C;
+    }
+}
