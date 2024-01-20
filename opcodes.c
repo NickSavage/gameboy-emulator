@@ -57,3 +57,12 @@ void compare(struct CPU *cpu, unsigned char amount) {
 	cpu->regs[REG_F] |= 0 << FLAG_C;
     }
 }
+
+void xor(struct CPU *cpu, unsigned char reg) {
+    cpu->regs[REG_A] = cpu->regs[REG_A] ^ cpu->regs[reg];
+
+    set_z_flag(cpu);
+    cpu->regs[REG_F] |= 0 << FLAG_C;
+    cpu->regs[REG_F] |= 0 << FLAG_N;
+    cpu->regs[REG_F] |= 0 << FLAG_H;
+}

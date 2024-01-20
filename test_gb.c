@@ -22,8 +22,17 @@ void test_sub() {
     assert(cpu.regs[7] == 3);
 }
 
+void test_xor() {
+    struct CPU cpu;
+    load_reg(&cpu, REG_B, 10);
+    xor(&cpu, REG_B);
+    assert(cpu.regs[REG_B] == 10);
+    
+}
+
 int main() {
     test_add();
     test_sub();
-    
+    test_xor();
+    printf("\n");
 }
