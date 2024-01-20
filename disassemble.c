@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 //#include "opcodes"
 
 static const int REG_B = 0;
@@ -11,23 +12,7 @@ static const int REG_L = 5;
 static const int REG_F = 6;
 static const int REG_A = 7;
 
-static const int FLAG_Z = 7;
-static const int FLAG_N = 6;
-static const int FLAG_H = 5;
-static const int FLAG_C = 4;
-
-static const int COND_NZ = 0;
-static const int COND_Z = 1;
-static const int COND_NC = 2;
-static const int COND_C = 3;
-
 static const char *regNames[] = {"b", "c", "d", "e", "h", "l", "f", "a"};
-
-int8_t memory[65535];
-int8_t rom[32768];
-int16_t pc;
-
-int8_t regs[] = {0,0,0,0,0,0,0,0};
 
 void printByteAsBinary(unsigned char byte) {
     for (int i = 7; i >= 0; i--) {
@@ -71,52 +56,9 @@ unsigned char* readFile(char *filename, size_t* size) {
 
     *size = file_size;
     // Close the file
-    for (int i; i < file_size; i++) {
-	rom[i] = buffer[i];
-    }
     fclose(file);
     return buffer;
 };
-
-int check_flag_c() {
-    int ret = (regs[REG_F] & 0b00010000) >> FLAG_C;
-    return ret;
-}
-void set_z_flag() {
-    if (regs[REG_A] == 0) {
-	regs[REG_F] |= 1 << FLAG_Z;
-    } else {
-	regs[REG_F] |= 0 << FLAG_Z;
-    }
-}
-
-void add(unsigned char amount) {
-    regs[REG_A] += amount;
-
-    set_z_flag();
-    
-    regs[REG_F] |= 0 << FLAG_N;
-    printf("%d, %d", regs[REG_A], amount);
-    if ((regs[REG_A]) < 0) {
-	regs[REG_F] |= 1 << FLAG_C;
-    } else {
-	regs[REG_F] |= 0 << FLAG_C;
-    }
-}
-
-
-void sub(unsigned char amount) {
-    regs[REG_A] -= amount;
-    
-    set_z_flag();
-    regs[REG_F] |= 1 << FLAG_N;
-    if ((regs[REG_A] - amount) < 0) {
-	regs[REG_F] |= 1 << FLAG_C;
-    } else {
-	regs[REG_F] |= 0 << FLAG_C;
-    }
-    
-}
 
 int parse_opcode(unsigned char first, unsigned char second, unsigned char third) {
     
@@ -128,25 +70,18 @@ int parse_opcode(unsigned char first, unsigned char second, unsigned char third)
 	int reg = (first & 0b00111000) >> 3;
 	printf(" ld %s, %d", regNames[reg], second);
 	printf(" -- %d -- ", reg);
-	regs[reg] = second;
 	ret = 1;
     }
     else if ((first & 0b11000111) == 0b01000110) {
 	// ld r, (HL)
-	int addr = (regs[REG_H] << 8) + regs[REG_L];
-	printf(" -- %d --", addr);
 	printf(" ld a, [HL]");
-	regs[REG_A] = memory[addr];
     }
     else if ((first & 0b11111000) == 0b01110000) {
 	// ld (HL), r
 	
-	int addr = (regs[REG_H] << 8) + regs[REG_L];
 	int src = (first & 0b00000111);
 	
 	printf(" ld [HL], %s", regNames[src]);
-
-	memory[addr] = regs[src];
     }
     else if ((first & 0b11000000) == 0b01000000) {
 	// ld r, r
@@ -154,37 +89,30 @@ int parse_opcode(unsigned char first, unsigned char second, unsigned char third)
 	int dest = (first & 0b00111000) >> 3;
 	int src = (first & 0b00000111);
 	printf(" ld %s, %s", regNames[dest], regNames[src]);
-	regs[dest] = regs[src];
     }
     else if ((first & 0b11111111) == 0b00110110) {
 	// ld (HL), n
 
-	int addr = (regs[REG_H] << 8) + regs[REG_L];
+	printf("ld [HL], %d", second);
 	
-	memory[addr] = second;
 	ret = 1;
     }
     else if ((first & 0b11111111) == 0b00001010) {
 	// ld a, (BC)
 	
-	int addr = (regs[REG_B] << 8) + regs[REG_C];
-	
-	regs[REG_A] = memory[addr];
+	printf("ld a, [BC]");
 	ret = 1;
     }
     else if ((first & 0b11111000) == 0b10000000) {
 	// add r
 	int reg = (first & 0b00111000) >> 3;
 	printf(" add %s", regNames[reg]);
-	
-	add(regs[reg]);
     }
     else if ((first & 0b11111111) == 0b11000110) {
 	// add n
 	printByteAsBinary(second);
 	putchar(' ');
 	printf(" add a, %d", second);
-	add(second);
 
 	ret = 1;
     }
@@ -192,7 +120,6 @@ int parse_opcode(unsigned char first, unsigned char second, unsigned char third)
 	// sub r
 	int reg = (first & 0b00111000) >> 3;
  	printf(" sub a, %s", regNames[reg]);
-	sub(regs[reg]);
 	
 	ret = 1;
     }
@@ -201,27 +128,18 @@ int parse_opcode(unsigned char first, unsigned char second, unsigned char third)
 	printByteAsBinary(second);
 	putchar(' ');
 	printf(" sub a, %d", second);
-	sub(second);
 	ret = 1;
     }
     else if ((first & 0b11111111) == 0b00100010) {
 	// ld (HL+), a
-	int addr = (regs[REG_H] << 8) + regs[REG_L];
-	printf(" -- %d --", addr);
 	
 	printf(" ld [HL+], a");
-	memory[addr] = regs[REG_A];
-	
-	addr -= 1;
-	regs[REG_H] = addr >> 8;
-	regs[REG_L] = addr & 0xFF;
-	
     }
     else if ((first & 0b11111111) == 0b11000011) {
 	// jp
 	int addr = (third << 8) + second;
-	printf(" JP %d", addr);
-	pc = addr;
+	printf("JP %d", addr);
+	ret = 2;
     }
     else if ((first & 0b11100111) == 0b11000010) {
 	// jp cc, nn
@@ -233,12 +151,7 @@ int parse_opcode(unsigned char first, unsigned char second, unsigned char third)
 	int cc = (first & 0b00011000) >> 3;
 	int addr = (third << 8) + second;
 	printf(" JP %d, %d", cc, addr);
-
-	if (cc == COND_NC && !(check_flag_c() == 1)) {
-	    pc = addr;
-	} else if (cc == COND_C && (check_flag_c() == 1)) {
-	    pc = addr;
-	}
+	ret = 2;
 	
     }
     putchar('\n');
@@ -252,34 +165,50 @@ int main(int argc, char *argv[]) {
     }
 
     size_t size;
-    unsigned char *fileData;
+    unsigned char *data;
+    int header = 1;
 
-    int running = 1;
-    
-    fileData = readFile(argv[1], &size);
+    data = readFile(argv[1], &size);
 
-    pc = 36;
+    char magic[4];
+    magic[0] = data[0];
+    magic[1] = data[1];
+    magic[2] = data[2];
+    magic[3] = data[3];
     
-    while(running != 0) {
-	printByteAsBinary(rom[pc]);
-	putchar(' ');
-	pc += parse_opcode(rom[pc], rom[pc + 1], rom[pc + 2]);
+    long revision = data[4] | (data[5] << 8) | (data[6] << 16) | (data[7] << 24);
+    long symbols = data[8] | (data[9] << 8) | (data[10] << 16) | (data[11] << 24);
+    long sections = data[12] | (data[13] << 8) | (data[14] << 16) | (data[15] << 24);
+    long nodes = data[16] | (data[17] << 8) | (data[18] << 16) | (data[19] << 24);
+
+    /* printf("%s\n", magic); */
+    /* printf("Revision: %ld\n", revision); */
+    /* printf("Symbols: %ld\n", symbols); */
+    /* printf("Sections: %ld\n", sections); */
+    /* printf("Number of nodes: %ld\n", nodes); */
+    
+    /* char name[4]; */
+    /* //    memcpy(name, &data[20], 4); */
+    /* name[0] = data[20]; */
+    /* name[1] = data[21]; */
+    /* name[2] = data[22]; */
+    /* name[3] = data[23]; */
+    /* printf("%s", name); */
+    /* printf("\n\n"); */
+
+    
+    /* for (int i = 0; i < size; i++) { */
+    /* 	printByteAsBinary(data[i]); */
+    /* 	putchar(' '); */
+    /* 	i += parse_opcode(data[i], data[i + 1], data[i + 2]); */
 	
-	pc++;
-	if (pc > size) {
-	    running = 0;
-	}
-    }
-    putchar('\n');
-    for (int i = 0; i < 8; i+=2) {
-	printf("%s%s:", regNames[i],regNames[i + 1]);
-	printByteAsBinary(regs[i]);
+    /* } */
+    for (int i = 0; i < 150; i++) {
+	printByteAsBinary(data[0x0100 + i]);
 	putchar(' ');
-	printByteAsBinary(regs[i+1]);
-	putchar('\n');
     }
     // Free the memory
-    free(fileData);
+    free(data);
 
     return 0;
 }
