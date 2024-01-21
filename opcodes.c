@@ -74,10 +74,12 @@ void load_reg_16(struct CPU *cpu, unsigned char reg, unsigned char low, unsigned
 	cpu->regs[REG_C] = low;
 	
     } else if (reg == 1) {
-
+	cpu->regs[REG_D] = high;
+	cpu->regs[REG_E] = low;
 	
     } else if (reg == 2) {
-	
+	cpu->regs[REG_H] = high;
+	cpu->regs[REG_L] = low;
     } else {
 	printf("error: load_reg_16 out of bounds, %d", reg);
     }
@@ -129,6 +131,14 @@ void compare(struct CPU *cpu, unsigned char amount) {
     } else {
 	cpu->regs[REG_F] |= 0 << FLAG_C;
     }
+}
+
+void or(struct CPU *cpu, unsigned char reg) {
+    cpu->regs[REG_A] = cpu->regs[REG_A] | cpu->regs[reg];
+    set_z_flag(cpu);
+    set_n_flag(cpu, 0);
+    set_c_flag(cpu, 0);
+    set_h_flag(cpu, 0);
 }
 
 void xor(struct CPU *cpu, unsigned char reg) {

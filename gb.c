@@ -135,19 +135,35 @@ int parse_opcode(struct CPU *cpu, int pc) {
     else if ((first & 0b11001111) == 0b00000001) {
 	// LD rr, nn
 
+	printByteAsBinary(second);
+	putchar(' ');
+	printByteAsBinary(third);
+	putchar(' ');
+	
 	int low = second;
 	int high = third;
-	int reg = first & 0b00110000 << 4;
+	int reg = (first & 0b00110000) >> 4;
 
-	
+	printf("ld %s%s, %x", regNames[reg + reg] , regNames[reg + reg + 1], (high << 8) + low);
+	load_reg_16(cpu, reg, low, high);
+	ret = 2;
     }
     else if ((first & 0b11111111) == 0b00001010) {
 	// ld a, (BC)
 	
 	int addr = (cpu->regs[REG_B] << 8) + cpu->regs[REG_C];
 	
+	printf(" ld a, [BC]");
 	cpu->regs[REG_A] = cpu->memory[addr];
 	ret = 1;
+    }
+    else if ((first & 0b11111111) == 0b00011010) {
+	// ld a, (DE)
+	
+	int addr = (cpu->regs[REG_D] << 8) + cpu->regs[REG_E];
+	
+	printf(" ld a, [DE]");
+	cpu->regs[REG_A] = cpu->memory[addr];
     }
     else if ((first & 0b11111000) == 0b10000000) {
 	// add r
@@ -182,12 +198,19 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	compare(cpu, second);
 	ret = 1;
     }
-    else if ((first & 0b11111000) == 0b10101000) {
+    else if ((first & 0b11111000) == 0b10110000) {
 	int reg = (first & 0b00000111);
-	printf( "xor %s", regNames[reg]);
+	printf( "or %s", regNames[reg]);
+	//or(cpu, reg);
 
-	xor(cpu, reg);
     }
+    /* else if ((first & 0b11111000) == 0b10101000) { */
+    /* 	// xor r */
+    /* 	int reg = (first & 0b00000111); */
+    /* 	printf( "xor %s", regNames[reg]); */
+
+    /* 	xor(cpu, reg); */
+    /* } */
     else if ((first & 0b11111111) == 0b11010110) {
 	// sub n
 	printByteAsBinary(second);
@@ -208,6 +231,25 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	cpu->regs[REG_H] = addr >> 8;
 	cpu->regs[REG_L] = addr & 0xFF;
 	
+    }
+    else if (first == 0x13) {
+	printf("inc de");
+	int total = (cpu->regs[REG_D] << 8) + cpu->regs[REG_E] + 1;
+	int high = (total >> 8) & 0xFF;
+	int low = total & 0xFF;
+
+	cpu->regs[REG_D] = high;
+	cpu->regs[REG_E] = low;
+
+    }
+    else if (first == 0x0B) {
+	printf("dec bc");
+	int total = (cpu->regs[REG_B] << 8) + cpu->regs[REG_C] - 1;
+	int high = (total >> 8) & 0xFF;
+	int low = total & 0xFF;
+
+	cpu->regs[REG_B] = high;
+	cpu->regs[REG_C] = low;
     }
     else if ((first & 0b11111111) == 0b11000011) {
 	// jp
@@ -287,7 +329,7 @@ int main(int argc, char *argv[]) {
 	    running = 0;
 	}
 
-	if (ppc == 15) {
+	if (ppc == 25) {
 	    break;
 	}
     }
