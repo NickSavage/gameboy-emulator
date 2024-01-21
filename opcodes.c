@@ -133,13 +133,13 @@ void compare(struct CPU *cpu, unsigned char amount) {
     }
 }
 
-void or(struct CPU *cpu, unsigned char reg) {
-    cpu->regs[REG_A] = cpu->regs[REG_A] | cpu->regs[reg];
-    set_z_flag(cpu);
-    set_n_flag(cpu, 0);
-    set_c_flag(cpu, 0);
-    set_h_flag(cpu, 0);
-}
+/* void or(struct CPU *cpu, unsigned char reg) { */
+/*     cpu->regs[REG_A] = cpu->regs[REG_A] | cpu->regs[reg]; */
+/*     set_z_flag(cpu); */
+/*     set_n_flag(cpu, 0); */
+/*     set_c_flag(cpu, 0); */
+/*     set_h_flag(cpu, 0); */
+/* } */
 
 void xor(struct CPU *cpu, unsigned char reg) {
     cpu->regs[REG_A] = cpu->regs[REG_A] ^ cpu->regs[reg];
