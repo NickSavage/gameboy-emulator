@@ -68,6 +68,21 @@ int get_h_flag(struct CPU *cpu) {
 void load_reg(struct CPU *cpu, unsigned char reg, unsigned char amount) {
     cpu->regs[reg] = amount;
 }
+void load_reg_16(struct CPU *cpu, unsigned char reg, unsigned char low, unsigned char high) {
+    if (reg == 0) {
+	cpu->regs[REG_B] = high;
+	cpu->regs[REG_C] = low;
+	
+    } else if (reg == 1) {
+
+	
+    } else if (reg == 2) {
+	
+    } else {
+	printf("error: load_reg_16 out of bounds, %d", reg);
+    }
+    
+};
 
 void set_mem(struct CPU *cpu, int16_t addr, int8_t amount) {
     cpu->memory[addr] = amount;

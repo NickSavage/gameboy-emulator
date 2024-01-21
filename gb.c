@@ -4,6 +4,7 @@
 #include "opcodes.h"
 
 static const char *regNames[] = {"b", "c", "d", "e", "h", "l", "f", "a"};
+static const char *regNames16[] = {"bc", "de", "hl"};
 
 int16_t ppc;
 
@@ -130,6 +131,15 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	
 	cpu->memory[addr] = second;
 	ret = 1;
+    }
+    else if ((first & 0b11001111) == 0b00000001) {
+	// LD rr, nn
+
+	int low = second;
+	int high = third;
+	int reg = first & 0b00110000 << 4;
+
+	
     }
     else if ((first & 0b11111111) == 0b00001010) {
 	// ld a, (BC)
