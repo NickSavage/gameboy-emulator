@@ -1,24 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//#include "opcodes"
-
-static const int REG_B = 0;
-static const int REG_C = 1;
-static const int REG_D = 2;
-static const int REG_E = 3;
-static const int REG_H = 4;
-static const int REG_L = 5;
-static const int REG_F = 6;
-static const int REG_A = 7;
+#include "opcodes.h"
 
 static const char *regNames[] = {"b", "c", "d", "e", "h", "l", "f", "a"};
-
-void printByteAsBinary(unsigned char byte) {
-    for (int i = 7; i >= 0; i--) {
-        putchar((byte & (1 << i)) ? '1' : '0');
-    }
-}
 
 unsigned char* readFile(char *filename, size_t* size) {
     
@@ -197,16 +182,17 @@ int main(int argc, char *argv[]) {
     /* printf("\n\n"); */
 
     
-    /* for (int i = 0; i < size; i++) { */
-    /* 	printByteAsBinary(data[i]); */
-    /* 	putchar(' '); */
-    /* 	i += parse_opcode(data[i], data[i + 1], data[i + 2]); */
-	
-    /* } */
-    for (int i = 0; i < 150; i++) {
-	printByteAsBinary(data[0x0100 + i]);
+    for (int i = 0; i < size; i++) {
+	printByteAsBinary(data[i]);
 	putchar(' ');
+	i += parse_opcode(data[i], data[i + 1], data[i + 2]);
+	
     }
+    /* for (int i = 0; i < 150; i++) { */
+    /* 	printByteAsBinary(data[0x0000 + i]); */
+    /* 	o */
+    /* 	putchar(' '); */
+    /* } */
     // Free the memory
     free(data);
 
