@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdint.h>
 #include "cpu.h"
 
 
@@ -12,7 +13,7 @@ void set_z_flag(struct CPU *cpu) {
     if (cpu->regs[REG_A] == 0) {
 	cpu->regs[REG_F] |= 1 << FLAG_Z;
     } else {
-	cpu->regs[REG_F] |= 0 << FLAG_Z;
+        cpu->regs[REG_F] &= ~(1 << FLAG_Z);
     }
 }
 
@@ -86,7 +87,7 @@ void load_reg_16(struct CPU *cpu, unsigned char reg, unsigned char low, unsigned
     
 };
 
-void set_mem(struct CPU *cpu, int16_t addr, int8_t amount) {
+void set_mem(struct CPU *cpu, uint16_t addr, uint8_t amount) {
     cpu->memory[addr] = amount;
 }
 
@@ -133,13 +134,13 @@ void compare(struct CPU *cpu, unsigned char amount) {
     }
 }
 
-/* void or(struct CPU *cpu, unsigned char reg) { */
-/*     cpu->regs[REG_A] = cpu->regs[REG_A] | cpu->regs[reg]; */
-/*     set_z_flag(cpu); */
-/*     set_n_flag(cpu, 0); */
-/*     set_c_flag(cpu, 0); */
-/*     set_h_flag(cpu, 0); */
-/* } */
+void or(struct CPU *cpu, unsigned char reg) {
+    cpu->regs[REG_A] = cpu->regs[REG_A] | cpu->regs[reg];
+    set_z_flag(cpu);
+    set_n_flag(cpu, 0);
+    set_c_flag(cpu, 0);
+    set_h_flag(cpu, 0);
+}
 
 void xor(struct CPU *cpu, unsigned char reg) {
     cpu->regs[REG_A] = cpu->regs[REG_A] ^ cpu->regs[reg];

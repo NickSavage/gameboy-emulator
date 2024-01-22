@@ -1,5 +1,8 @@
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
+
+#include <unistd.h>
 
 #include "opcodes.h"
 
@@ -94,7 +97,8 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	putchar(' ');
 	printByteAsBinary(third);
 	putchar(' ');
-	int addr = (third << 8) + second;
+	uint16_t addr = (third << 8) + second;
+	printf("%d", addr);
 	printf(" ld [%x], a", addr);
 	set_mem(cpu, addr, cpu->regs[REG_A]);
 	ret = 2;
@@ -201,16 +205,16 @@ int parse_opcode(struct CPU *cpu, int pc) {
     else if ((first & 0b11111000) == 0b10110000) {
 	int reg = (first & 0b00000111);
 	printf( "or %s", regNames[reg]);
-	//or(cpu, reg);
+	or(cpu, reg);
 
     }
-    /* else if ((first & 0b11111000) == 0b10101000) { */
-    /* 	// xor r */
-    /* 	int reg = (first & 0b00000111); */
-    /* 	printf( "xor %s", regNames[reg]); */
+    else if ((first & 0b11111000) == 0b10101000) {
+	// xor r
+	int reg = (first & 0b00000111);
+	printf( "xor %s", regNames[reg]);
 
-    /* 	xor(cpu, reg); */
-    /* } */
+	xor(cpu, reg);
+    }
     else if ((first & 0b11111111) == 0b11010110) {
 	// sub n
 	printByteAsBinary(second);
@@ -222,12 +226,11 @@ int parse_opcode(struct CPU *cpu, int pc) {
     else if ((first & 0b11111111) == 0b00100010) {
 	// ld (HL+), a
 	int addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
-	printf(" -- %d --", addr);
 	
 	printf(" ld [HL+], a");
 	cpu->memory[addr] = cpu->regs[REG_A];
 	
-	addr -= 1;
+	addr += 1;
 	cpu->regs[REG_H] = addr >> 8;
 	cpu->regs[REG_L] = addr & 0xFF;
 	
@@ -241,6 +244,8 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	cpu->regs[REG_D] = high;
 	cpu->regs[REG_E] = low;
 
+	printf("; %x", (cpu->regs[REG_D] << 8) + cpu->regs[REG_E]);
+
     }
     else if (first == 0x0B) {
 	printf("dec bc");
@@ -250,6 +255,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 
 	cpu->regs[REG_B] = high;
 	cpu->regs[REG_C] = low;
+	printf("; %x", (cpu->regs[REG_B] << 8) + cpu->regs[REG_C]);
     }
     else if ((first & 0b11111111) == 0b11000011) {
 	// jp
@@ -291,8 +297,22 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	ret = 1;
 	if (cc == COND_C && (check_flag_c(cpu) == 1)) {
 	    ppc += (int8_t)second;
+	} else if (cc == COND_NZ && (get_z_flag(cpu) == 1)) {
+	    ppc += (int8_t)second;
+	} else {
+	    ret = 2;
 	}
 	
+	putchar('\n');
+	for (int i = 0; i < 8; i+=2) {
+	    printf("%s%s:", regNames[i],regNames[i + 1]);
+	    printByteAsBinary(cpu->regs[i]);
+	    putchar(' ');
+	    printByteAsBinary(cpu->regs[i+1]);
+	    putchar('\n');
+	}
+	putchar('\n');
+	sleep(1);
     }
     putchar('\n');
     return ret;
@@ -305,7 +325,7 @@ int main(int argc, char *argv[]) {
     }
 
     size_t size;
-
+    int ret = 0;
     int running = 1;
     
     struct CPU cpu;
@@ -323,13 +343,14 @@ int main(int argc, char *argv[]) {
 	printf("%x - ", ppc);
 	printByteAsBinary(cpu.rom[ppc]);
 	putchar(' ');
-	ppc += parse_opcode(&cpu, ppc);
+	ret = parse_opcode(&cpu, ppc);
+	ppc += ret;
 	ppc++;
 	if (ppc > size) {
 	    running = 0;
 	}
 
-	if (ppc == 25) {
+	if (ppc == 27) {
 	    break;
 	}
     }

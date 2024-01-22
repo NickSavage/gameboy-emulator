@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdint.h>
 #include <assert.h>
 
 #include "opcodes.h"
@@ -38,6 +39,16 @@ void test_xor() {
     assert(get_c_flag(&cpu) == 0);
 }
 
+void test_set_z_flag() {
+    
+    struct CPU cpu;
+    load_reg(&cpu, REG_A, 0);
+    set_z_flag(&cpu);
+    assert(get_z_flag(&cpu) == 0);
+    load_reg(&cpu, REG_A, 1);
+    set_z_flag(&cpu);
+}
+
 void test_set_n_flag() {
     struct CPU cpu;
     set_n_flag(&cpu, 1);
@@ -62,9 +73,9 @@ void test_set_h_flag() {
 
 void test_set_mem() {
     struct CPU cpu;
-    int16_t addr = 0xFF40;
+    uint16_t addr = 0xFF40;
     assert(cpu.memory[addr] == 0);
-    set_mem(&cpu, 0xFF40, 1);
+    set_mem(&cpu, addr, 1);
     assert(cpu.memory[addr] == 1);
 }
 
