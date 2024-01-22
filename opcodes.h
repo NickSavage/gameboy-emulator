@@ -20,5 +20,6 @@ void set_mem(struct CPU *cpu, uint16_t addr, uint8_t amount);
 void add(struct CPU *cpu, unsigned char amount);
 void sub(struct CPU *cpu, unsigned char amount);
 void compare(struct CPU *cpu, unsigned char amount);
+void and(struct CPU *cpu, unsigned char amount);
 void or(struct CPU *cpu, unsigned char reg);
 void xor(struct CPU *cpu, unsigned char reg);

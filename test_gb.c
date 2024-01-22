@@ -23,6 +23,16 @@ void test_sub() {
     assert(cpu.regs[7] == 3);
 }
 
+void test_and() {
+    struct CPU cpu;
+    load_reg(&cpu, REG_A, 0b00000000);
+    load_reg(&cpu, REG_B, 0b00000010);
+    and(&cpu, cpu.regs[REG_B]);
+    assert(cpu.regs[REG_A] == 0x00);
+    assert(get_z_flag(&cpu) == 0);
+    assert(get_h_flag(&cpu) == 1);
+}
+
 void test_xor() {
     struct CPU cpu;
     load_reg(&cpu, REG_A, 0);

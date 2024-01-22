@@ -134,6 +134,15 @@ void compare(struct CPU *cpu, unsigned char amount) {
     }
 }
 
+void and(struct CPU *cpu, unsigned char amount) {
+    cpu->regs[REG_A]= cpu->regs[REG_A] & amount;
+    
+    set_z_flag(cpu);
+    set_n_flag(cpu, 0);
+    set_c_flag(cpu, 0);
+    set_h_flag(cpu, 1);
+}
+
 void or(struct CPU *cpu, unsigned char reg) {
     cpu->regs[REG_A] = cpu->regs[REG_A] | cpu->regs[reg];
     set_z_flag(cpu);

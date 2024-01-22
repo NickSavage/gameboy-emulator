@@ -14,6 +14,9 @@ int16_t ppc;
 void init_cpu(struct CPU *cpu) {
     cpu->pc = 36;
     cpu->memory[0xFF44] = 144; // plugged, relates to vblank
+    for (int i = 0x0000; i < 0x7fff; i++) {
+	cpu->memory[i] = cpu->rom[i];
+    }
 }
     
 
@@ -56,6 +59,18 @@ unsigned char* readFile(char *filename, size_t* size) {
     fclose(file);
     return buffer;
 };
+
+void output_memory(struct CPU *cpu) {
+    FILE *file = fopen("output.bin", "wb");
+
+    // Write the array to the file
+    size_t elements_written = fwrite(cpu->memory, sizeof(int8_t), 65535, file);
+    if (elements_written != 65535) {
+        perror("Failed to write the full array");
+        // Close the file before returning
+        fclose(file);
+    }
+}
 
 int check_flag_c(struct CPU *cpu) {
     int ret = (cpu->regs[REG_F] & 0b00010000) >> FLAG_C;
@@ -202,6 +217,12 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	compare(cpu, second);
 	ret = 1;
     }
+    else if ((first & 0b11111000) == 0b10100000) {
+	// and r
+	int reg = (first & 0b00000111);
+	printf( "and %s", regNames[reg]);
+	and(cpu, cpu->regs[reg]);
+    }
     else if ((first & 0b11111000) == 0b10110000) {
 	int reg = (first & 0b00000111);
 	printf( "or %s", regNames[reg]);
@@ -228,7 +249,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	int addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
 	
 	printf(" ld [HL+], a");
-	cpu->memory[addr] = cpu->regs[REG_A];
+	set_mem(cpu, addr, cpu->regs[REG_A]);
 	
 	addr += 1;
 	cpu->regs[REG_H] = addr >> 8;
@@ -284,6 +305,11 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	}
 	
     }
+    else if ((first & 0b11111111) == 0b00011000) {
+	// jr e
+	printf(" jr %d", (int8_t)second);
+	ret = -1;
+    }
     else if ((first & 0b11100111) == 0b00100000) {
 	// jr cc, nn
 	printByteAsBinary(second);
@@ -301,15 +327,15 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	    ret = 1;
 	}
 	
-	/* putchar('\n'); */
-	/* for (int i = 0; i < 8; i+=2) { */
-	/*     printf("%s%s:", regNames[i],regNames[i + 1]); */
-	/*     printByteAsBinary(cpu->regs[i]); */
-	/*     putchar(' '); */
-	/*     printByteAsBinary(cpu->regs[i+1]); */
-	/*     putchar('\n'); */
-	/* } */
-	/* putchar('\n'); */
+	putchar('\n');
+	for (int i = 0; i < 8; i+=2) {
+	    printf("%s%s:", regNames[i],regNames[i + 1]);
+	    printByteAsBinary(cpu->regs[i]);
+	    putchar(' ');
+	    printByteAsBinary(cpu->regs[i+1]);
+	    putchar('\n');
+	}
+	putchar('\n');
 	//sleep(1);
     }
     putchar('\n');
@@ -327,7 +353,6 @@ int main(int argc, char *argv[]) {
     int running = 1;
     
     struct CPU cpu;
-    init_cpu(&cpu);
     printf("%d", cpu.pc);
 
     unsigned char *data = readFile(argv[1], &size);
@@ -336,21 +361,27 @@ int main(int argc, char *argv[]) {
     }
     ppc = 0x0100;
     
+    init_cpu(&cpu);
     printf("%d", cpu.rom);
     while(running != 0) {
 	printf("%x - ", ppc);
 	printByteAsBinary(cpu.rom[ppc]);
 	putchar(' ');
 	ret = parse_opcode(&cpu, ppc);
+	if (ret == -1) {
+	    output_memory(&cpu);
+	    break;
+	}
 	ppc += ret;
 	ppc++;
 	if (ppc > size) {
 	    running = 0;
 	}
 
-	if (ppc == 0x25) {
-	    break;
-	}
+	/* if (ppc == 0x28) { */
+	/*     output_memory(&cpu); */
+	/*     break; */
+	/* } */
     }
     putchar('\n');
     for (int i = 0; i < 8; i+=2) {
