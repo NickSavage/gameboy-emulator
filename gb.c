@@ -288,8 +288,6 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	// jr cc, nn
 	printByteAsBinary(second);
 	putchar(' ');
-	printByteAsBinary(third);
-	putchar(' ');
 	
 	int cc = (first & 0b00011000) >> 3;
 	printf(" JR %d, %d", cc, (int8_t)second);
@@ -297,22 +295,22 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	ret = 1;
 	if (cc == COND_C && (check_flag_c(cpu) == 1)) {
 	    ppc += (int8_t)second;
-	} else if (cc == COND_NZ && (get_z_flag(cpu) == 1)) {
+	} else if (cc == COND_NZ && (get_z_flag(cpu) == 0)) {
 	    ppc += (int8_t)second;
 	} else {
-	    ret = 2;
+	    ret = 1;
 	}
 	
-	putchar('\n');
-	for (int i = 0; i < 8; i+=2) {
-	    printf("%s%s:", regNames[i],regNames[i + 1]);
-	    printByteAsBinary(cpu->regs[i]);
-	    putchar(' ');
-	    printByteAsBinary(cpu->regs[i+1]);
-	    putchar('\n');
-	}
-	putchar('\n');
-	sleep(1);
+	/* putchar('\n'); */
+	/* for (int i = 0; i < 8; i+=2) { */
+	/*     printf("%s%s:", regNames[i],regNames[i + 1]); */
+	/*     printByteAsBinary(cpu->regs[i]); */
+	/*     putchar(' '); */
+	/*     printByteAsBinary(cpu->regs[i+1]); */
+	/*     putchar('\n'); */
+	/* } */
+	/* putchar('\n'); */
+	//sleep(1);
     }
     putchar('\n');
     return ret;
@@ -350,7 +348,7 @@ int main(int argc, char *argv[]) {
 	    running = 0;
 	}
 
-	if (ppc == 27) {
+	if (ppc == 0x25) {
 	    break;
 	}
     }
