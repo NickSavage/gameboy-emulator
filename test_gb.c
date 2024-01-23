@@ -22,7 +22,6 @@ void test_sub() {
 
     assert(cpu.regs[7] == 3);
 }
-
 void test_and() {
     struct CPU cpu;
     load_reg(&cpu, REG_A, 0b00000000);
@@ -89,6 +88,15 @@ void test_set_mem() {
     assert(cpu.memory[addr] == 1);
 }
 
+void test_fetch_tile() {
+    struct CPU cpu;
+    uint16_t addr = 0x9800;
+    set_mem(&cpu, addr, 0b10100101);
+    set_mem(&cpu, addr + 1, 0b11000011);
+    assert(fetch_tile(&cpu, 0x9800) == 0b1110010000011011);
+}
+
+
 
 int main() {
     test_add();
@@ -98,5 +106,6 @@ int main() {
     test_set_c_flag();
     test_set_h_flag();
     test_set_mem();
+    test_fetch_tile();
     printf("\n");
 }

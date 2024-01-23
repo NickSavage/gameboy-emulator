@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdlib.h>
 
 static const int REG_B = 0;
@@ -24,4 +25,17 @@ struct CPU {
     int8_t rom[32768];
     int16_t pc;
     unsigned char regs[8];
+};
+
+enum ppu_mode {
+    H_BLANK,
+    V_BLANK,
+    OAM_SCAN,
+    DRAWING,
+};
+
+struct PPU {
+    enum ppu_mode mode;
+    int cycles;
+    uint16_t buffer;
 };

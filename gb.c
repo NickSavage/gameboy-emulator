@@ -4,7 +4,6 @@
 
 #include <unistd.h>
 
-#include "ppu.h"
 #include "opcodes.h"
 
 static const char *regNames[] = {"b", "c", "d", "e", "h", "l", "f", "a"};

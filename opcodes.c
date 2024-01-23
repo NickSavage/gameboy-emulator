@@ -9,6 +9,7 @@ void printByteAsBinary(unsigned char byte) {
     }
 }
 
+
 void set_z_flag(struct CPU *cpu) {
     if (cpu->regs[REG_A] == 0) {
 	cpu->regs[REG_F] |= 1 << FLAG_Z;
@@ -158,4 +159,17 @@ void xor(struct CPU *cpu, unsigned char reg) {
     set_n_flag(cpu, 0);
     set_c_flag(cpu, 0);
     set_h_flag(cpu, 0);
+}
+
+
+uint16_t fetch_tile(struct CPU *cpu, uint16_t addr) {
+    uint8_t low = cpu->memory[addr];
+    uint8_t high = cpu->memory[addr + 1];
+    uint16_t result = 0;
+
+    for (int i = 0; i < 8; ++i) {
+        result |= (high & (1 << i)) << (i + 1);
+        result |= (low & (1 << i)) << i;
+    }
+    return result;
 }
