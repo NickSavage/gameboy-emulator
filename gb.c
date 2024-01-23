@@ -4,10 +4,10 @@
 
 #include <unistd.h>
 
+#include "ppu.h"
 #include "opcodes.h"
 
 static const char *regNames[] = {"b", "c", "d", "e", "h", "l", "f", "a"};
-static const char *regNames16[] = {"bc", "de", "hl"};
 
 int16_t ppc;
 
@@ -353,7 +353,7 @@ int main(int argc, char *argv[]) {
     int running = 1;
     
     struct CPU cpu;
-    printf("%d", cpu.pc);
+    struct PPU ppu;
 
     unsigned char *data = readFile(argv[1], &size);
     for (int i = 0; i < size; i++) {
