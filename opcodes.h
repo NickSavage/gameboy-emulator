@@ -16,7 +16,6 @@ int get_h_flag(struct CPU *cpu);
 
 void load_reg(struct CPU *cpu, unsigned char reg, unsigned char amount);
 void load_reg_16(struct CPU *cpu, unsigned char reg, unsigned char low, unsigned char high);
-uint8_t load_mem(struct CPU *cpu, uint16_t addr);
 void set_mem(struct CPU *cpu, uint16_t addr, uint8_t amount);
 void add(struct CPU *cpu, unsigned char amount);
 void sub(struct CPU *cpu, unsigned char amount);

@@ -1,14 +1,35 @@
+#include <signal.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 
 #include <unistd.h>
 
+#include <SDL2/SDL.h>
+
 #include "opcodes.h"
+
+#define LCD_WIDTH 160
+#define LCD_HEIGHT 144
+
+uint32_t fb[LCD_WIDTH][LCD_HEIGHT];
 
 static const char *regNames[] = {"b", "c", "d", "e", "h", "l", "f", "a"};
 
 int16_t ppc;
+
+void quit(int sig) {
+    if (sig == SIGINT) {
+	exit(0);
+    }
+}
+
+void init_screen(SDL_Window *win, SDL_Renderer *ren, SDL_Texture *tex) {
+    win = SDL_CreateWindow("Hello SDL", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, LCD_WIDTH * 2, LCD_HEIGHT * 2, SDL_WINDOW_RESIZABLE);
+    ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
+    tex = SDL_CreateTexture(ren, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, LCD_WIDTH, LCD_HEIGHT);
+    SDL_RenderSetLogicalSize(ren, LCD_WIDTH, LCD_HEIGHT);
+}
 
 void init_cpu(struct CPU *cpu) {
     cpu->pc = 36;
@@ -346,11 +367,18 @@ int main(int argc, char *argv[]) {
         printf("Usage: %s <filename>\n", argv[0]);
         return 1;
     }
+    signal(SIGINT, quit);
 
     size_t size;
     int ret = 0;
     int running = 1;
     
+    SDL_Window *win = NULL;
+    SDL_Renderer *ren = NULL;
+    SDL_Texture *tex = NULL;
+    SDL_Event event;
+    
+    init_screen(win, ren, tex);
     struct CPU cpu;
     struct PPU ppu;
 
@@ -367,20 +395,19 @@ int main(int argc, char *argv[]) {
 	printByteAsBinary(cpu.rom[ppc]);
 	putchar(' ');
 	ret = parse_opcode(&cpu, ppc);
-	if (ret == -1) {
-	    output_memory(&cpu);
-	    break;
-	}
-	ppc += ret;
-	ppc++;
-	if (ppc > size) {
-	    running = 0;
-	}
-
-	/* if (ppc == 0x28) { */
+	/* if (ret == -1) { */
 	/*     output_memory(&cpu); */
 	/*     break; */
 	/* } */
+	ppc += ret;
+	ppc++;
+	while (SDL_PollEvent(&event)) {
+	    if (event.key.keysym.sym == SDLK_q) {
+		exit(0);
+	    }
+
+
+	}
     }
     putchar('\n');
     for (int i = 0; i < 8; i+=2) {
@@ -392,6 +419,10 @@ int main(int argc, char *argv[]) {
     }
     // Free the memory
     free(data);
-
+    
+    SDL_DestroyRenderer(ren);
+    SDL_DestroyWindow(win);
+    SDL_Quit();
+    
     return 0;
 }

@@ -1,7 +1,7 @@
 target = build test
 
 build:
-	gcc -g gb.c opcodes.c -o gb
+	gcc -g gb.c opcodes.c -lSDL2 -o gb
 
 disassemble:
 	gcc -g disassemble.c opcodes.c -o disassemble
