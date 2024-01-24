@@ -184,9 +184,9 @@ uint16_t* fetch_tile(struct CPU *cpu, uint16_t addr) {
     tile[6] = interleave_tile(cpu->memory[addr + 11], cpu->memory[addr + 12]);
     tile[7] = interleave_tile(cpu->memory[addr + 13], cpu->memory[addr + 14]);
     tile[8] = interleave_tile(cpu->memory[addr + 15], cpu->memory[addr + 16]);
-    for (int i = 0; i < 8; i++) {
-	printf("%X", tile[i]);
-    }
-    printf("\n");
+    /* for (int i = 0; i < 8; i++) { */
+    /* 	printf("%X", tile[i]); */
+    /* } */
+    /* printf("\n"); */
     return tile;
 }

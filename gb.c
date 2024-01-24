@@ -369,17 +369,34 @@ void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_HEIGHT]) {
     uint16_t addr;
     uint16_t *tile;
     uint8_t x_offset = 0;
+    int mask = 0x3;
     
+    printf("\?\?\?/n");
     for (int i = 0; i < 256; i++) {
 	if (bg_tile_map_mode_addr == 1) {
-	    addr = 0x9000 + ((i + 128) * 16);
+	    printf("aoeaoe");
+	    addr = 0x9000 + ((i) * 16);
 	} else {
-	    addr = 0x8000 + (i * 16);
+	    addr = 0x9000 + (i * 16);
 	}
+	printf("tile %x\n", addr);
 	tile = fetch_tile(cpu, addr);
 	for (int y = 0; y < 8; y++) {
 	    fb[x_offset][x_offset + y] = tile[y];
-	    
+	    /* fb[x_offset][x_offset + y] = (tile[y] >> 7) & mask; */
+	    /* fb[x_offset][x_offset + y] = (tile[y] >> 6) & mask; */
+	    /* fb[x_offset][x_offset + y] = (tile[y] >> 5) & mask; */
+	    /* fb[x_offset][x_offset + y] = (tile[y] >> 4) & mask; */
+	    /* fb[x_offset][x_offset + y] = (tile[y] >> 3) & mask; */
+	    /* fb[x_offset][x_offset + y] = (tile[y] >> 2) & mask; */
+	    /* fb[x_offset][x_offset + y] = (tile[y] >> 1) & mask; */
+	    /* fb[x_offset + 1][x_offset + y] = (tile[y] & 0x01000000 >> 6); */
+	    /* fb[x_offset + 2][x_offset + y] = (tile[y] & 0x00100000) >> 5; */
+	    /* fb[x_offset + 3][x_offset + y] = (tile[y] & 0x00010000) >> 4; */
+	    /* fb[x_offset + 4][x_offset + y] = (tile[y] & 0x00001000) >> 3; */
+	    /* fb[x_offset + 5][x_offset + y] = (tile[y] & 0x00000100) >> 2; */
+	    /* fb[x_offset + 6][x_offset + y] = (tile[y] & 0x00000010) >> 1; */
+	    /* fb[x_offset + 7][x_offset + y] = (tile[y] & 0x00000001) >> 0; */
 	}
     }
     
