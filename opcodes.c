@@ -171,3 +171,22 @@ uint16_t interleave_tile(uint8_t low, uint8_t high) {
     }
     return result;
 }
+
+uint16_t* fetch_tile(struct CPU *cpu, uint16_t addr) {
+    uint16_t* tile = malloc(8 * sizeof(uint16_t)); // Allocate memory for 8 uint16_t elements
+    
+    tile[0] = interleave_tile(cpu->memory[addr], cpu->memory[addr + 1]);
+    tile[1] = interleave_tile(cpu->memory[addr + 1], cpu->memory[addr + 2]);
+    tile[2] = interleave_tile(cpu->memory[addr + 3], cpu->memory[addr + 4]);
+    tile[3] = interleave_tile(cpu->memory[addr + 5], cpu->memory[addr + 6]);
+    tile[4] = interleave_tile(cpu->memory[addr + 7], cpu->memory[addr + 8]);
+    tile[5] = interleave_tile(cpu->memory[addr + 9], cpu->memory[addr + 10]);
+    tile[6] = interleave_tile(cpu->memory[addr + 11], cpu->memory[addr + 12]);
+    tile[7] = interleave_tile(cpu->memory[addr + 13], cpu->memory[addr + 14]);
+    tile[8] = interleave_tile(cpu->memory[addr + 15], cpu->memory[addr + 16]);
+    for (int i = 0; i < 8; i++) {
+	printf("%X", tile[i]);
+    }
+    printf("\n");
+    return tile;
+}

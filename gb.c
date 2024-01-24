@@ -357,30 +357,42 @@ int parse_opcode(struct CPU *cpu, int pc) {
     return ret;
 }
 
+uint8_t bg_tile_map_mode(struct CPU *cpu) {
+    uint8_t byte = cpu->memory[0xFF40];
+    uint8_t result = (byte & 0b00001000) << 3;
+    return result;
+}
+
 // todo: this needs to build tiles first and then put them on the screen, instead of doing it on the fly like this
-void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_HEIGHT], uint16_t addr) {
-    /* for (int y = 0; y <= LCD_WIDTH; y += 8) { */
-    /* 	fb[x][0] = fetch_tile(cpu, addr); */
-    /* 	fb[x][1] = fetch_tile(cpu, addr + 2); */
-    /* 	fb[x][2] = fetch_tile(cpu, addr + 4); */
-    /* 	fb[x][3] = fetch_tile(cpu, addr + 6); */
-    /* 	fb[x][4] = fetch_tile(cpu, addr + 8); */
-    /* 	fb[x][5] = fetch_tile(cpu, addr + 10); */
-    /* 	fb[x][6] = fetch_tile(cpu, addr + 12); */
-    /* 	fb[x][7] = fetch_tile(cpu, addr + 14); */
+void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_HEIGHT]) {
+    uint8_t bg_tile_map_mode_addr = bg_tile_map_mode(cpu);
+    uint16_t addr;
+    uint16_t *tile;
+    uint8_t x_offset = 0;
+    
+    for (int i = 0; i < 256; i++) {
+	if (bg_tile_map_mode_addr == 1) {
+	    addr = 0x9000 + ((i + 128) * 16);
+	} else {
+	    addr = 0x8000 + (i * 16);
+	}
+	tile = fetch_tile(cpu, addr);
+	for (int y = 0; y < 8; y++) {
+	    fb[x_offset][x_offset + y] = tile[y];
 	    
-	
-    /* 	addr += 14; */
-    /* 	} */
-    for (int x = 0; x < LCD_HEIGHT / 8; x++) {
-	for (int y = 0; y < LCD_WIDTH; y++) {
-	    uint8_t low = cpu->memory[addr];
-	    uint8_t high = cpu->memory[addr + 1];
-	    fb[x][y] = interleave_tile(low, high);
-	    //fb[x][y] = 0xFFFFFFFF;
-	    addr += 2;
 	}
     }
+    
+    /* for (int x = 0; x < LCD_HEIGHT / 8; x++) { */
+    /* 	for (int y = 0; y < LCD_WIDTH; y++) { */
+    /* 	    tile = fetch_tile(cpu, addr); */
+    /* 	    uint8_t low = cpu->memory[addr]; */
+    /* 	    uint8_t high = cpu->memory[addr + 1]; */
+    /* 	    fb[x][y] = interleave_tile(low, high); */
+    /* 	    //fb[x][y] = 0xFFFFFFFF; */
+    /* 	    addr += 2; */
+    /* 	} */
+    /* } */
 }
 
 int main(int argc, char *argv[]) {
@@ -432,6 +444,7 @@ int main(int argc, char *argv[]) {
     
     init_cpu(&cpu);
     printf("%d", cpu.rom);
+    
     while(running != 0) {
 	printf("%x - ", ppc);
 	printByteAsBinary(cpu.rom[ppc]);
@@ -448,7 +461,8 @@ int main(int argc, char *argv[]) {
 	/* 	running = 0; */
 	/*     } */
 	/* } */
-	build_fb(&cpu, fb, 0x9000);
+
+	build_fb(&cpu, fb);
 	SDL_UpdateTexture(tex, NULL, fb, LCD_WIDTH * sizeof(uint32_t));
 	SDL_RenderClear(ren);
 	SDL_RenderCopy(ren, tex, NULL, NULL);
