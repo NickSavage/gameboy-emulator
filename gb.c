@@ -24,10 +24,6 @@ void quit(int sig) {
 }
 
 void init_screen(SDL_Window *win, SDL_Renderer *ren, SDL_Texture *tex) {
-    win = SDL_CreateWindow("Hello SDL", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, LCD_WIDTH * 2, LCD_HEIGHT * 2, SDL_WINDOW_RESIZABLE);
-    ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
-    tex = SDL_CreateTexture(ren, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, LCD_WIDTH, LCD_HEIGHT);
-    SDL_RenderSetLogicalSize(ren, LCD_WIDTH, LCD_HEIGHT);
 }
 
 void init_cpu(struct CPU *cpu) {
@@ -361,13 +357,25 @@ int parse_opcode(struct CPU *cpu, int pc) {
     return ret;
 }
 
+// todo: this needs to build tiles first and then put them on the screen, instead of doing it on the fly like this
 void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_HEIGHT], uint16_t addr) {
-    
-    for (int x = 0; x < LCD_WIDTH; x += 8) {
-	printf("x:%d", x);
-	for (int y = 0; y < LCD_HEIGHT; y++) {
+    /* for (int y = 0; y <= LCD_WIDTH; y += 8) { */
+    /* 	fb[x][0] = fetch_tile(cpu, addr); */
+    /* 	fb[x][1] = fetch_tile(cpu, addr + 2); */
+    /* 	fb[x][2] = fetch_tile(cpu, addr + 4); */
+    /* 	fb[x][3] = fetch_tile(cpu, addr + 6); */
+    /* 	fb[x][4] = fetch_tile(cpu, addr + 8); */
+    /* 	fb[x][5] = fetch_tile(cpu, addr + 10); */
+    /* 	fb[x][6] = fetch_tile(cpu, addr + 12); */
+    /* 	fb[x][7] = fetch_tile(cpu, addr + 14); */
+	    
+	
+    /* 	addr += 14; */
+    /* 	} */
+    for (int x = 0; x < LCD_HEIGHT / 8; x++) {
+	for (int y = 0; y < LCD_WIDTH; y++) {
 	    fb[x][y] = fetch_tile(cpu, addr);
-	    printf("y:%d", y);
+	    //fb[x][y] = 0xFFFFFFFF;
 	    addr += 2;
 	}
     }
@@ -389,8 +397,28 @@ int main(int argc, char *argv[]) {
     SDL_Texture *tex = NULL;
     SDL_Event event;
     uint32_t fb[LCD_WIDTH][LCD_HEIGHT];
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+        printf("SDL_Init Error: %s\n", SDL_GetError());
+        return 1;
+    }
+    win = SDL_CreateWindow("Gameboy Emulator", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, LCD_WIDTH * 4, LCD_HEIGHT * 4, SDL_WINDOW_RESIZABLE);
+    ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
+
+    tex = SDL_CreateTexture(ren, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, LCD_WIDTH, LCD_HEIGHT);
+
+    if (win == NULL) {
+        printf("SDL_CreateWindow Error: %s\n", SDL_GetError());
+        return 1;
+    }
+    if (ren == NULL) {
+        printf("SDL_CreateRenderer Error: %s\n", SDL_GetError());
+        return 1;
+    }
     
-    init_screen(win, ren, tex);
+    SDL_RenderSetLogicalSize(ren, LCD_WIDTH, LCD_HEIGHT);
+    SDL_SetRenderDrawColor(ren, 255, 255, 255, 255);
+    SDL_RenderClear(ren);
+    SDL_RenderPresent(ren);
     struct CPU cpu;
     struct PPU ppu;
 
@@ -407,23 +435,23 @@ int main(int argc, char *argv[]) {
 	printByteAsBinary(cpu.rom[ppc]);
 	putchar(' ');
 	ret = parse_opcode(&cpu, ppc);
-	if (ret == -1) {
-	    output_memory(&cpu);
-	    build_fb(&cpu, fb, 0x9000);
-	    SDL_UpdateTexture(tex, NULL, fb, LCD_HEIGHT * sizeof(uint32_t));
-	    SDL_RenderClear(ren);
-	    SDL_RenderCopy(ren, tex, NULL, NULL);
-	    SDL_RenderPresent(ren);
-	    SDL_Delay(2000);
-	    break;
-	}
+	/* if (ret == -1) { */
+	/*     output_memory(&cpu); */
+	/*     break; */
+	/* } */
 	ppc += ret;
 	ppc++;
-	while (SDL_PollEvent(&event)) {
-	    if (event.key.keysym.sym == SDLK_q) {
-		running = 0;
-	    }
-	}
+	/* while (SDL_PollEvent(&event)) { */
+	/*     if (event.key.keysym.sym == SDLK_q) { */
+	/* 	running = 0; */
+	/*     } */
+	/* } */
+	build_fb(&cpu, fb, 0x9000);
+	SDL_UpdateTexture(tex, NULL, fb, LCD_WIDTH * sizeof(uint32_t));
+	SDL_RenderClear(ren);
+	SDL_RenderCopy(ren, tex, NULL, NULL);
+	SDL_RenderPresent(ren);
+	//SDL_Delay(2000);
 
     }
     putchar('\n');
