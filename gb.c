@@ -12,7 +12,6 @@
 #define LCD_WIDTH 160
 #define LCD_HEIGHT 144
 
-uint32_t fb[LCD_WIDTH][LCD_HEIGHT];
 
 static const char *regNames[] = {"b", "c", "d", "e", "h", "l", "f", "a"};
 
@@ -362,6 +361,18 @@ int parse_opcode(struct CPU *cpu, int pc) {
     return ret;
 }
 
+void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_HEIGHT], uint16_t addr) {
+    
+    for (int x = 0; x < LCD_WIDTH; x += 8) {
+	printf("x:%d", x);
+	for (int y = 0; y < LCD_HEIGHT; y++) {
+	    fb[x][y] = fetch_tile(cpu, addr);
+	    printf("y:%d", y);
+	    addr += 2;
+	}
+    }
+}
+
 int main(int argc, char *argv[]) {
     if (argc != 2) {
         printf("Usage: %s <filename>\n", argv[0]);
@@ -377,6 +388,7 @@ int main(int argc, char *argv[]) {
     SDL_Renderer *ren = NULL;
     SDL_Texture *tex = NULL;
     SDL_Event event;
+    uint32_t fb[LCD_WIDTH][LCD_HEIGHT];
     
     init_screen(win, ren, tex);
     struct CPU cpu;
@@ -395,19 +407,24 @@ int main(int argc, char *argv[]) {
 	printByteAsBinary(cpu.rom[ppc]);
 	putchar(' ');
 	ret = parse_opcode(&cpu, ppc);
-	/* if (ret == -1) { */
-	/*     output_memory(&cpu); */
-	/*     break; */
-	/* } */
+	if (ret == -1) {
+	    output_memory(&cpu);
+	    build_fb(&cpu, fb, 0x9000);
+	    SDL_UpdateTexture(tex, NULL, fb, LCD_HEIGHT * sizeof(uint32_t));
+	    SDL_RenderClear(ren);
+	    SDL_RenderCopy(ren, tex, NULL, NULL);
+	    SDL_RenderPresent(ren);
+	    SDL_Delay(2000);
+	    break;
+	}
 	ppc += ret;
 	ppc++;
 	while (SDL_PollEvent(&event)) {
 	    if (event.key.keysym.sym == SDLK_q) {
-		exit(0);
+		running = 0;
 	    }
-
-
 	}
+
     }
     putchar('\n');
     for (int i = 0; i < 8; i+=2) {

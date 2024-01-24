@@ -171,5 +171,6 @@ uint16_t fetch_tile(struct CPU *cpu, uint16_t addr) {
         result |= (high & (1 << i)) << (i + 1);
         result |= (low & (1 << i)) << i;
     }
+    printf(" %x - %x\n ", addr,result);
     return result;
 }
