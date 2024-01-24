@@ -89,11 +89,10 @@ void test_set_mem() {
 }
 
 void test_fetch_tile() {
-    struct CPU cpu;
-    uint16_t addr = 0x9800;
-    set_mem(&cpu, addr, 0b10100101);
-    set_mem(&cpu, addr + 1, 0b11000011);
-    assert(fetch_tile(&cpu, 0x9800) == 0b1110010000011011);
+    uint8_t low = 0b10100101;
+    uint8_t high = 0b11000011;
+
+    assert(interleave_tile(low, high) == 0b1110010000011011);
 }
 
 

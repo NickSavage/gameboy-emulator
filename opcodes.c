@@ -162,9 +162,7 @@ void xor(struct CPU *cpu, unsigned char reg) {
 }
 
 
-uint16_t fetch_tile(struct CPU *cpu, uint16_t addr) {
-    uint8_t low = cpu->memory[addr];
-    uint8_t high = cpu->memory[addr + 1];
+uint16_t interleave_tile(uint8_t low, uint8_t high) {
     uint16_t result = 0;
 
     for (int i = 0; i < 8; ++i) {

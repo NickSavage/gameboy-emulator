@@ -374,7 +374,9 @@ void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_HEIGHT], uint16_t addr) {
     /* 	} */
     for (int x = 0; x < LCD_HEIGHT / 8; x++) {
 	for (int y = 0; y < LCD_WIDTH; y++) {
-	    fb[x][y] = fetch_tile(cpu, addr);
+	    uint8_t low = cpu->memory[addr];
+	    uint8_t high = cpu->memory[addr + 1];
+	    fb[x][y] = interleave_tile(low, high);
 	    //fb[x][y] = 0xFFFFFFFF;
 	    addr += 2;
 	}
