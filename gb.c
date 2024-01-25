@@ -363,53 +363,59 @@ uint8_t bg_tile_map_mode(struct CPU *cpu) {
     return result;
 }
 
+uint32_t colour_tile(int input) {
+    uint32_t result = 0;
+    if (input > 0) {
+	result = 0xFFFFFFFF;
+    } else {
+	result = 0x00000000;
+    }
+    printf(", %x\n", result);
+    return result;
+}
+
+void put_tile(uint32_t (*fb)[LCD_WIDTH], uint16_t tile, int x_offset, int y_offset) {
+    printf("%x, %d-%d", tile, x_offset, y_offset);
+    fb[x_offset][y_offset + 0] = colour_tile((tile >> 14) & 0x3);
+    fb[x_offset][y_offset + 1] = colour_tile((tile >> 12) & 0x3);
+    fb[x_offset][y_offset + 2] = colour_tile((tile >> 10) & 0x3);
+    fb[x_offset][y_offset + 3] = colour_tile((tile >> 8) & 0x3);
+    fb[x_offset][y_offset + 4] = colour_tile((tile >> 6) & 0x3);
+    fb[x_offset][y_offset + 5] = colour_tile((tile >> 4) & 0x3);
+    fb[x_offset][y_offset + 6] = colour_tile((tile >> 2) & 0x3);
+    fb[x_offset][y_offset + 7] = colour_tile((tile >> 0) & 0x3);
+}
+
 // todo: this needs to build tiles first and then put them on the screen, instead of doing it on the fly like this
-void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_HEIGHT]) {
+void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH]) {
     uint8_t bg_tile_map_mode_addr = bg_tile_map_mode(cpu);
     uint16_t addr;
-    uint16_t *tile;
+    uint16_t tile;
     uint8_t x_offset = 0;
+    uint8_t y_offset = 0;
     int mask = 0x3;
     
     printf("\?\?\?/n");
+/*     for (int x = 0; x < LCD_WIDTH; x++) { */
+/* 	fb[x][0] = 0xFFFF; */
+/* 	fb[x][1] = 0xFFFF; */
+/*     } */
+/* } */
     for (int i = 0; i < 256; i++) {
 	if (bg_tile_map_mode_addr == 1) {
-	    printf("aoeaoe");
 	    addr = 0x9000 + ((i) * 16);
 	} else {
 	    addr = 0x9000 + (i * 16);
 	}
-	printf("tile %x\n", addr);
-	tile = fetch_tile(cpu, addr);
-	for (int y = 0; y < 8; y++) {
-	    fb[x_offset][x_offset + y] = tile[y];
-	    /* fb[x_offset][x_offset + y] = (tile[y] >> 7) & mask; */
-	    /* fb[x_offset][x_offset + y] = (tile[y] >> 6) & mask; */
-	    /* fb[x_offset][x_offset + y] = (tile[y] >> 5) & mask; */
-	    /* fb[x_offset][x_offset + y] = (tile[y] >> 4) & mask; */
-	    /* fb[x_offset][x_offset + y] = (tile[y] >> 3) & mask; */
-	    /* fb[x_offset][x_offset + y] = (tile[y] >> 2) & mask; */
-	    /* fb[x_offset][x_offset + y] = (tile[y] >> 1) & mask; */
-	    /* fb[x_offset + 1][x_offset + y] = (tile[y] & 0x01000000 >> 6); */
-	    /* fb[x_offset + 2][x_offset + y] = (tile[y] & 0x00100000) >> 5; */
-	    /* fb[x_offset + 3][x_offset + y] = (tile[y] & 0x00010000) >> 4; */
-	    /* fb[x_offset + 4][x_offset + y] = (tile[y] & 0x00001000) >> 3; */
-	    /* fb[x_offset + 5][x_offset + y] = (tile[y] & 0x00000100) >> 2; */
-	    /* fb[x_offset + 6][x_offset + y] = (tile[y] & 0x00000010) >> 1; */
-	    /* fb[x_offset + 7][x_offset + y] = (tile[y] & 0x00000001) >> 0; */
+	tile = interleave_tile(cpu->memory[addr], cpu->memory[addr + 1]);
+	put_tile(fb, tile, x_offset, y_offset);
+	y_offset += 8;
+	if ((i % 8) == 0) {
+	    if (i > 0) {
+		x_offset++;
+	    }
 	}
     }
-    
-    /* for (int x = 0; x < LCD_HEIGHT / 8; x++) { */
-    /* 	for (int y = 0; y < LCD_WIDTH; y++) { */
-    /* 	    tile = fetch_tile(cpu, addr); */
-    /* 	    uint8_t low = cpu->memory[addr]; */
-    /* 	    uint8_t high = cpu->memory[addr + 1]; */
-    /* 	    fb[x][y] = interleave_tile(low, high); */
-    /* 	    //fb[x][y] = 0xFFFFFFFF; */
-    /* 	    addr += 2; */
-    /* 	} */
-    /* } */
 }
 
 int main(int argc, char *argv[]) {
@@ -427,7 +433,7 @@ int main(int argc, char *argv[]) {
     SDL_Renderer *ren = NULL;
     SDL_Texture *tex = NULL;
     SDL_Event event;
-    uint32_t fb[LCD_WIDTH][LCD_HEIGHT];
+    uint32_t fb[LCD_HEIGHT][LCD_WIDTH];
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         printf("SDL_Init Error: %s\n", SDL_GetError());
         return 1;
@@ -479,14 +485,18 @@ int main(int argc, char *argv[]) {
 	/*     } */
 	/* } */
 
-	build_fb(&cpu, fb);
-	SDL_UpdateTexture(tex, NULL, fb, LCD_WIDTH * sizeof(uint32_t));
-	SDL_RenderClear(ren);
-	SDL_RenderCopy(ren, tex, NULL, NULL);
-	SDL_RenderPresent(ren);
+	if ((cpu.memory[0xFF40] & 0b10000000) >> 7 == 1) {
+	    build_fb(&cpu, fb);
+	    SDL_UpdateTexture(tex, NULL, fb, LCD_WIDTH * sizeof(uint32_t));
+	    //SDL_UpdateTexture(tex, NULL, fb, LCD_WIDTH);
+	    SDL_RenderClear(ren);
+	    SDL_RenderCopy(ren, tex, NULL, NULL);
+	    SDL_RenderPresent(ren);
+	}
 	//SDL_Delay(2000);
 
     }
+    build_fb(&cpu, fb);
     putchar('\n');
     for (int i = 0; i < 8; i+=2) {
 	printf("%s%s:", regNames[i],regNames[i + 1]);
