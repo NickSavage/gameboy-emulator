@@ -374,16 +374,27 @@ uint32_t colour_tile(int input) {
     return result;
 }
 
+/* void put_tile(uint32_t (*fb)[LCD_WIDTH], uint16_t tile, int x_offset, int y_offset) { */
+/*     printf("%x, %d-%d", tile, x_offset, y_offset); */
+/*     fb[x_offset][y_offset + 0] = colour_tile((tile >> 14) & 0x3); */
+/*     fb[x_offset][y_offset + 1] = colour_tile((tile >> 12) & 0x3); */
+/*     fb[x_offset][y_offset + 2] = colour_tile((tile >> 10) & 0x3); */
+/*     fb[x_offset][y_offset + 3] = colour_tile((tile >> 8) & 0x3); */
+/*     fb[x_offset][y_offset + 4] = colour_tile((tile >> 6) & 0x3); */
+/*     fb[x_offset][y_offset + 5] = colour_tile((tile >> 4) & 0x3); */
+/*     fb[x_offset][y_offset + 6] = colour_tile((tile >> 2) & 0x3); */
+/*     fb[x_offset][y_offset + 7] = colour_tile((tile >> 0) & 0x3); */
+/* } */
 void put_tile(uint32_t (*fb)[LCD_WIDTH], uint16_t tile, int x_offset, int y_offset) {
     printf("%x, %d-%d", tile, x_offset, y_offset);
-    fb[x_offset][y_offset + 0] = colour_tile((tile >> 14) & 0x3);
-    fb[x_offset][y_offset + 1] = colour_tile((tile >> 12) & 0x3);
-    fb[x_offset][y_offset + 2] = colour_tile((tile >> 10) & 0x3);
-    fb[x_offset][y_offset + 3] = colour_tile((tile >> 8) & 0x3);
-    fb[x_offset][y_offset + 4] = colour_tile((tile >> 6) & 0x3);
-    fb[x_offset][y_offset + 5] = colour_tile((tile >> 4) & 0x3);
-    fb[x_offset][y_offset + 6] = colour_tile((tile >> 2) & 0x3);
-    fb[x_offset][y_offset + 7] = colour_tile((tile >> 0) & 0x3);
+    fb[y_offset + 0][x_offset] = colour_tile((tile >> 14) & 0x3);
+    fb[y_offset + 1][x_offset] = colour_tile((tile >> 12) & 0x3);
+    fb[y_offset + 2][x_offset] = colour_tile((tile >> 10) & 0x3);
+    fb[y_offset + 3][x_offset] = colour_tile((tile >> 8) & 0x3);
+    fb[y_offset + 4][x_offset] = colour_tile((tile >> 6) & 0x3);
+    fb[y_offset + 5][x_offset] = colour_tile((tile >> 4) & 0x3);
+    fb[y_offset + 6][x_offset] = colour_tile((tile >> 2) & 0x3);
+    fb[y_offset + 7][x_offset] = colour_tile((tile >> 0) & 0x3);
 }
 
 // todo: this needs to build tiles first and then put them on the screen, instead of doing it on the fly like this
@@ -392,8 +403,6 @@ void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH]) {
     uint16_t addr;
     uint16_t tile;
     uint8_t x_offset = 0;
-    uint8_t y_offset = 0;
-    int mask = 0x3;
     
     printf("\?\?\?/n");
 /*     for (int x = 0; x < LCD_WIDTH; x++) { */
@@ -401,20 +410,22 @@ void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH]) {
 /* 	fb[x][1] = 0xFFFF; */
 /*     } */
 /* } */
-    for (int i = 0; i < 256; i++) {
-	if (bg_tile_map_mode_addr == 1) {
-	    addr = 0x9000 + ((i) * 16);
-	} else {
-	    addr = 0x9000 + (i * 16);
+    for (uint8_t ly = 0; ly < 153; ly++) {
+	cpu->memory[0xFF44] = ly; // store ly in 0xFF44
+	for (uint8_t scx = 0; scx <= 20; scx++) {
+	    cpu->memory[0xFF43] = scx;
+
+	    /* if (bg_tile_map_mode_addr == 1) { */
+	    /* 	addr = 0x9000 + ((i) * 16); */
+	    /* } else { */
+	    addr = 0x9000 + (ly * 0) + (scx * 8);
+		//}
+	    tile = interleave_tile(cpu->memory[addr], cpu->memory[addr + 1]);
+	    put_tile(fb, tile, x_offset, ly);
+
 	}
-	tile = interleave_tile(cpu->memory[addr], cpu->memory[addr + 1]);
-	put_tile(fb, tile, x_offset, y_offset);
-	y_offset += 8;
-	if ((i % 8) == 0) {
-	    if (i > 0) {
-		x_offset++;
-	    }
-	}
+						   
+	
     }
 }
 
