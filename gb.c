@@ -23,7 +23,10 @@ void quit(int sig) {
     }
 }
 
-void init_screen(SDL_Window *win, SDL_Renderer *ren, SDL_Texture *tex) {
+void init_screen(struct CPU *cpu) {
+
+    cpu->memory[0xFF42] = 0; // store scy in 0xFF42
+    cpu->memory[0xFF43] = 0; // store scy in 0xFF42
 }
 
 void init_cpu(struct CPU *cpu) {
@@ -402,9 +405,11 @@ void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH]) {
     uint8_t bg_tile_map_mode_addr = bg_tile_map_mode(cpu);
     uint16_t addr;
     uint16_t tile;
+    uint8_t pixel;
     uint8_t x_offset = 0;
     
-    printf("\?\?\?/n");
+    uint8_t tile_x;
+    uint8_t tile_y;
 /*     for (int x = 0; x < LCD_WIDTH; x++) { */
 /* 	fb[x][0] = 0xFFFF; */
 /* 	fb[x][1] = 0xFFFF; */
@@ -412,16 +417,21 @@ void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH]) {
 /* } */
     for (uint8_t ly = 0; ly < 153; ly++) {
 	cpu->memory[0xFF44] = ly; // store ly in 0xFF44
-	for (uint8_t scx = 0; scx <= 20; scx++) {
-	    cpu->memory[0xFF43] = scx;
-
+	if (ly >= 144) {
+	    continue;
+	}
+	for (uint8_t x = 0; x <= 160; x++) {
+	    
+	    tile_x = x / 8;
+	    tile_y = ly / 8;
 	    /* if (bg_tile_map_mode_addr == 1) { */
 	    /* 	addr = 0x9000 + ((i) * 16); */
 	    /* } else { */
-	    addr = 0x9000 + (ly * 0) + (scx * 8);
+	    addr = 0x9000 + (tile_y * 0) + (tile_x);
 		//}
 	    tile = interleave_tile(cpu->memory[addr], cpu->memory[addr + 1]);
-	    put_tile(fb, tile, x_offset, ly);
+	    pixel = colour_tile((tile >> (tile_x % 8)) & 0x3);
+	    fb[ly][x] = pixel;
 
 	}
 						   
