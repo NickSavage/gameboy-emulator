@@ -390,7 +390,7 @@ void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH]) {
     uint8_t tile_y;
     uint8_t tile_pixel_x;
     uint8_t tile_pixel_y;
-    uint8_t tile_index;
+    uint16_t tile_index;
     uint8_t tile_id;
 /*     for (int x = 0; x < LCD_WIDTH; x++) { */
 /* 	fb[x][0] = 0xFFFF; */
@@ -416,6 +416,7 @@ void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH]) {
 	    colour_pixel = colourize_pixel(pixel);
 
 	    fb[ly][x] = colour_pixel;
+	    printf("ly: %d, x: %d, tile_x: %d, tile_y: %d, tile_index: %d, pixel: %d\n", ly, x, tile_x, tile_y, tile_index, pixel);
 	}
     }
 }
