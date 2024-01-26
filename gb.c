@@ -373,7 +373,7 @@ uint32_t colour_tile(int input) {
     } else {
 	result = 0x00000000;
     }
-    printf(", %x\n", result);
+    //    printf(", %x\n", result);
     return result;
 }
 
@@ -410,6 +410,10 @@ void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH]) {
     
     uint8_t tile_x;
     uint8_t tile_y;
+    uint8_t tile_pixel_x;
+    uint8_t tile_pixel_y;
+    uint8_t tile_index;
+    uint8_t tile_id;
 /*     for (int x = 0; x < LCD_WIDTH; x++) { */
 /* 	fb[x][0] = 0xFFFF; */
 /* 	fb[x][1] = 0xFFFF; */
@@ -424,14 +428,23 @@ void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH]) {
 	    
 	    tile_x = x / 8;
 	    tile_y = ly / 8;
+	    tile_pixel_x = x % 8;
+	    tile_pixel_y = ly % 8;
+
+	    printf("%d, %d, %d, %d\n", ly, x, tile_y, tile_x);
+	    tile_index = tile_y * 32 + tile_x;
+	    //	    addr = 0x9800 + tile_index;
+	    tile_id = cpu->memory[0x9800 + tile_index]; 
+	    addr = 0x9000 + tile_id * 16 + tile_pixel_y * 2;
+	    printf("tile_index: %d, tile_id: %d, addr: %x\n", tile_index, tile_id, addr);
 	    /* if (bg_tile_map_mode_addr == 1) { */
 	    /* 	addr = 0x9000 + ((i) * 16); */
 	    /* } else { */
-	    addr = 0x9000 + (tile_y * 0) + (tile_x);
+	    //	    addr = 0x9000 + (tile_y * 0) + (tile_x);
 		//}
 	    tile = interleave_tile(cpu->memory[addr], cpu->memory[addr + 1]);
-	    pixel = colour_tile((tile >> (tile_x % 8)) & 0x3);
-	    fb[ly][x] = pixel;
+	    //  pixel = colour_tile((tile >> (tile_x % 8)) & 0x3);
+	    fb[ly][x] = tile;
 
 	}
 						   
