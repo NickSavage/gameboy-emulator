@@ -366,47 +366,25 @@ uint8_t bg_tile_map_mode(struct CPU *cpu) {
     return result;
 }
 
-uint32_t colour_tile(int input) {
+uint32_t colourize_pixel(int input) {
     uint32_t result = 0;
+
     if (input > 0) {
+	//if (((input >> (16 -index)) & 0b11) > 0) {
 	result = 0xFFFFFFFF;
     } else {
-	result = 0x00000000;
+	result = 0x00;
     }
     //    printf(", %x\n", result);
     return result;
-}
-
-/* void put_tile(uint32_t (*fb)[LCD_WIDTH], uint16_t tile, int x_offset, int y_offset) { */
-/*     printf("%x, %d-%d", tile, x_offset, y_offset); */
-/*     fb[x_offset][y_offset + 0] = colour_tile((tile >> 14) & 0x3); */
-/*     fb[x_offset][y_offset + 1] = colour_tile((tile >> 12) & 0x3); */
-/*     fb[x_offset][y_offset + 2] = colour_tile((tile >> 10) & 0x3); */
-/*     fb[x_offset][y_offset + 3] = colour_tile((tile >> 8) & 0x3); */
-/*     fb[x_offset][y_offset + 4] = colour_tile((tile >> 6) & 0x3); */
-/*     fb[x_offset][y_offset + 5] = colour_tile((tile >> 4) & 0x3); */
-/*     fb[x_offset][y_offset + 6] = colour_tile((tile >> 2) & 0x3); */
-/*     fb[x_offset][y_offset + 7] = colour_tile((tile >> 0) & 0x3); */
-/* } */
-void put_tile(uint32_t (*fb)[LCD_WIDTH], uint16_t tile, int x_offset, int y_offset) {
-    printf("%x, %d-%d", tile, x_offset, y_offset);
-    fb[y_offset + 0][x_offset] = colour_tile((tile >> 14) & 0x3);
-    fb[y_offset + 1][x_offset] = colour_tile((tile >> 12) & 0x3);
-    fb[y_offset + 2][x_offset] = colour_tile((tile >> 10) & 0x3);
-    fb[y_offset + 3][x_offset] = colour_tile((tile >> 8) & 0x3);
-    fb[y_offset + 4][x_offset] = colour_tile((tile >> 6) & 0x3);
-    fb[y_offset + 5][x_offset] = colour_tile((tile >> 4) & 0x3);
-    fb[y_offset + 6][x_offset] = colour_tile((tile >> 2) & 0x3);
-    fb[y_offset + 7][x_offset] = colour_tile((tile >> 0) & 0x3);
 }
 
 // todo: this needs to build tiles first and then put them on the screen, instead of doing it on the fly like this
 void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH]) {
     uint8_t bg_tile_map_mode_addr = bg_tile_map_mode(cpu);
     uint16_t addr;
-    uint16_t tile;
     uint8_t pixel;
-    uint8_t x_offset = 0;
+    uint8_t colour_pixel;
     
     uint8_t tile_x;
     uint8_t tile_y;
@@ -422,7 +400,7 @@ void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH]) {
     for (uint8_t ly = 0; ly < 153; ly++) {
 	cpu->memory[0xFF44] = ly; // store ly in 0xFF44
 	if (ly >= 144) {
-	    continue;
+	    continue; // vblank
 	}
 	for (uint8_t x = 0; x <= 160; x++) {
 	    
@@ -431,24 +409,14 @@ void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH]) {
 	    tile_pixel_x = x % 8;
 	    tile_pixel_y = ly % 8;
 
-	    printf("%d, %d, %d, %d\n", ly, x, tile_y, tile_x);
 	    tile_index = tile_y * 32 + tile_x;
-	    //	    addr = 0x9800 + tile_index;
 	    tile_id = cpu->memory[0x9800 + tile_index]; 
-	    addr = 0x9000 + tile_id * 16 + tile_pixel_y * 2;
-	    printf("tile_index: %d, tile_id: %d, addr: %x\n", tile_index, tile_id, addr);
-	    /* if (bg_tile_map_mode_addr == 1) { */
-	    /* 	addr = 0x9000 + ((i) * 16); */
-	    /* } else { */
-	    //	    addr = 0x9000 + (tile_y * 0) + (tile_x);
-		//}
-	    tile = interleave_tile(cpu->memory[addr], cpu->memory[addr + 1]);
-	    //  pixel = colour_tile((tile >> (tile_x % 8)) & 0x3);
-	    fb[ly][x] = tile;
+	    addr = (tile_id > 127 ? 0x8800 : 0x9000) + tile_id * 16 + tile_pixel_y * 2;
+	    pixel = interleave_tile_pixel(cpu->memory[addr], cpu->memory[addr + 1], 8 -tile_pixel_x);
+	    colour_pixel = colourize_pixel(pixel);
 
+	    fb[ly][x] = colour_pixel;
 	}
-						   
-	
     }
 }
 

@@ -26,3 +26,5 @@ void xor(struct CPU *cpu, unsigned char reg);
 
 uint16_t* fetch_tile(struct CPU *cpu, uint16_t addr);
 uint16_t interleave_tile(uint8_t low, uint8_t high);
+
+uint16_t interleave_tile_pixel(uint8_t low, uint8_t high, uint8_t index);

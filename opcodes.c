@@ -162,6 +162,13 @@ void xor(struct CPU *cpu, unsigned char reg) {
 }
 
 
+uint16_t interleave_tile_pixel(uint8_t low, uint8_t high, uint8_t index) {
+    uint16_t result = 0;
+
+    result |= (high & (1 << index)) << 1;
+    result |= (low & (1 << index));
+    return result;
+}
 uint16_t interleave_tile(uint8_t low, uint8_t high) {
     uint16_t result = 0;
 
