@@ -203,6 +203,13 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	printf(" ld a, [DE]");
 	cpu->regs[REG_A] = cpu->memory[addr];
     }
+    else if (first == 0b00010010) {
+	// ld [DE], a
+	int addr = (cpu->regs[REG_D] << 8) + cpu->regs[REG_E];
+	
+	printf(" ld [DE], a");
+	cpu->memory[addr] = cpu->regs[REG_A];
+    }
     else if (first == 0b11110000) {
 	// ldh a, 0xFF00 + n
 
@@ -300,6 +307,17 @@ int parse_opcode(struct CPU *cpu, int pc) {
 
 	printf("; %x", (cpu->regs[REG_D] << 8) + cpu->regs[REG_E]);
 
+    }
+    else if (first == 0b00100011) {
+	uint8_t reg = (first >> 4) & 0b0011;
+	printf("inc hl");
+
+	int total = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L] + 1;
+	int high = (total >> 8) & 0xFF;
+	int low = total & 0xFF;
+
+	cpu->regs[REG_H] = high;
+	cpu->regs[REG_L] = low;
     }
     else if (first == 0x0B) {
 	printf("dec bc");

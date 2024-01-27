@@ -86,7 +86,7 @@ void load_reg_16(struct CPU *cpu, unsigned char reg, unsigned char low, unsigned
 	cpu->sp = (high << 8) + low;
 	
     }else {
-	printf("error: load_reg_16 out of bounds, %d", reg);
+	printf("error: load_reg_16 out of bounds, %d\n", reg);
     }
     
 };
