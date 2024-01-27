@@ -109,6 +109,18 @@ void add(struct CPU *cpu, unsigned char amount) {
     }
 }
 
+void decrement_8(struct CPU *cpu, uint8_t reg) {
+    cpu->regs[reg] -= 1;
+
+    if (cpu->regs[reg] == 0) {
+	cpu->regs[REG_F] |= 1 << FLAG_Z;
+    } else {
+        cpu->regs[REG_F] &= ~(1 << FLAG_Z);
+    }
+    set_n_flag(cpu, 1);
+    
+}
+
 void sub(struct CPU *cpu, unsigned char amount) {
     cpu->regs[REG_A] -= amount;
     

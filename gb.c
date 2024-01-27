@@ -103,7 +103,16 @@ int parse_opcode(struct CPU *cpu, int pc) {
     unsigned char third = cpu->rom[pc + 2];
 
     int ret = 0;
-    if ((first & 0b11000111) == 0b00000110) {
+    if (first == 0b00110110) {
+	// ld [HL], n
+	printByteAsBinary(second);
+	printf("ld [HL], %d", second);
+	uint16_t addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
+	cpu->memory[addr] = second;
+
+	ret = 1;
+    }
+    else if ((first & 0b11000111) == 0b00000110) {
 	// ld r, n
 	// load register immediate
 	printByteAsBinary(second);
@@ -324,9 +333,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	uint8_t reg = (first >> 3) & 0b00111;
 
 	printf("dec %s", regNames[reg]);
-	cpu->regs[reg] -= 1;
-	
-	reg = -1;
+	decrement_8(cpu, reg);
     }
     else if (first == 0x0B) {
 	printf("dec bc");
@@ -345,7 +352,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	ppc = addr - 1;
     }
     else if ((first & 0b11100111) == 0b11000010) {
-	// jp cc, nn
+	// jp cc, n
 	printByteAsBinary(second);
 	putchar(' ');
 	printByteAsBinary(third);
@@ -368,7 +375,8 @@ int parse_opcode(struct CPU *cpu, int pc) {
     else if ((first & 0b11111111) == 0b00011000) {
 	// jr e
 	printf(" jr %d", (int8_t)second);
-	ret = -1;
+	ppc += (int8_t)second;
+	//	ret = -1;
     }
     else if ((first & 0b11100111) == 0b00100000) {
 	// jr cc, nn
@@ -382,7 +390,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	if (cc == COND_C && (check_flag_c(cpu) == 1)) {
 	    ppc += (int8_t)second;
 	} else if (cc == COND_NZ && (get_z_flag(cpu) == 0)) {
-	    printf("does htis get triggered?")
+	    printf("does htis get triggered?");
 	    ppc += (int8_t)second;
 	} else {
 	    ret = 1;
@@ -417,8 +425,15 @@ int parse_opcode(struct CPU *cpu, int pc) {
 
 uint8_t bg_tile_map_mode(struct CPU *cpu) {
     uint8_t byte = cpu->memory[0xFF40];
-    uint8_t result = (byte & 0b00001000) << 3;
+    uint8_t result = ((byte & 0b00001000) >> 3) & 0b00001;
     return result;
+}
+
+uint8_t bg_tile_data_mode(struct CPU *cpu) {
+    uint8_t byte = cpu->memory[0xFF40];
+    uint8_t result = ((byte & 0b00010000) >> 4);
+    return result;
+    
 }
 
 uint32_t colourize_pixel(int input) {
@@ -437,6 +452,7 @@ uint32_t colourize_pixel(int input) {
 // todo: this needs to build tiles first and then put them on the screen, instead of doing it on the fly like this
 void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH]) {
     uint8_t bg_tile_map_mode_addr = bg_tile_map_mode(cpu);
+    uint8_t bg_tile_data_mode_addr = bg_tile_data_mode(cpu) == 1 ? 0x8000 : 0x9000;
     uint16_t tile_index_addr = bg_tile_map_mode_addr == 0 ? 0x9800 : 0x9C00;
     uint16_t addr;
     uint8_t pixel;
@@ -467,12 +483,17 @@ void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH]) {
 
 	    tile_index = tile_y * 32 + tile_x;
 	    tile_id = cpu->memory[tile_index_addr + tile_index]; 
-	    addr = (tile_id > 127 ? 0x8800 : 0x9000) + tile_id * 16 + tile_pixel_y * 2;
+	    if (bg_tile_data_mode(cpu) == 1) {
+		addr = 0x8000 + tile_id * 16 + tile_pixel_y * 2;
+	    } 
+	    else {
+		addr = (tile_id > 127 ? 0x8800 : 0x9000) + tile_id * 16 + tile_pixel_y * 2;
+	    }
 	    pixel = interleave_tile_pixel(cpu->memory[addr], cpu->memory[addr + 1], 8 -tile_pixel_x);
 	    colour_pixel = colourize_pixel(pixel);
 
 	    fb[ly][x] = colour_pixel;
-	    //	    printf("ly: %d, x: %d, tile_x: %d, tile_y: %d, tile_index: %d, pixel: %d\n", ly, x, tile_x, tile_y, tile_index, pixel);
+	    //   printf("ly: %d, x: %d, tile_x: %d, tile_y: %d, tile_index: %d, pixel: %d\n", ly, x, tile_x, tile_y, tile_index, pixel);
 	}
     }
 }

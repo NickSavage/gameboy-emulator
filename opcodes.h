@@ -19,6 +19,8 @@ void load_reg_16(struct CPU *cpu, unsigned char reg, unsigned char low, unsigned
 void set_mem(struct CPU *cpu, uint16_t addr, uint8_t amount);
 void add(struct CPU *cpu, unsigned char amount);
 void sub(struct CPU *cpu, unsigned char amount);
+void decrement_8(struct CPU *cpu, uint8_t reg);
+void decrement_16(struct CPU *cpu, uint8_t reg);
 void compare(struct CPU *cpu, unsigned char amount);
 void and(struct CPU *cpu, unsigned char amount);
 void or(struct CPU *cpu, unsigned char reg);
