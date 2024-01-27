@@ -14,6 +14,7 @@
 
 
 static const char *regNames[] = {"b", "c", "d", "e", "h", "l", "f", "a"};
+static const char *reg_names_16[] = {"bc", "de", "hl", "sp"};
 
 int16_t ppc;
 
@@ -181,7 +182,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	int high = third;
 	int reg = (first & 0b00110000) >> 4;
 
-	printf("ld %s%s, %x", regNames[reg + reg] , regNames[reg + reg + 1], (high << 8) + low);
+	printf("ld %s, %x", reg_names_16[reg], (high << 8) + low);
 	load_reg_16(cpu, reg, low, high);
 	ret = 2;
     }
@@ -356,6 +357,18 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	putchar('\n');
 	//sleep(1);
     }
+    else if ((first & 0b11111111) == 0b11110011) {
+	// disable interrupts
+	cpu->ime = 0;
+	printf(" di");
+    }
+    else {
+	printByteAsBinary(second);
+	putchar(' ');
+	printByteAsBinary(third);
+	printf(" unknown");
+	exit(0);
+    }
     putchar('\n');
     return ret;
 }
@@ -382,6 +395,7 @@ uint32_t colourize_pixel(int input) {
 // todo: this needs to build tiles first and then put them on the screen, instead of doing it on the fly like this
 void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH]) {
     uint8_t bg_tile_map_mode_addr = bg_tile_map_mode(cpu);
+    uint16_t tile_index_addr = bg_tile_map_mode_addr == 0 ? 0x9800 : 0x9C00;
     uint16_t addr;
     uint8_t pixel;
     uint8_t colour_pixel;
@@ -410,7 +424,7 @@ void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH]) {
 	    tile_pixel_y = ly % 8;
 
 	    tile_index = tile_y * 32 + tile_x;
-	    tile_id = cpu->memory[0x9800 + tile_index]; 
+	    tile_id = cpu->memory[tile_index_addr + tile_index]; 
 	    addr = (tile_id > 127 ? 0x8800 : 0x9000) + tile_id * 16 + tile_pixel_y * 2;
 	    pixel = interleave_tile_pixel(cpu->memory[addr], cpu->memory[addr + 1], 8 -tile_pixel_x);
 	    colour_pixel = colourize_pixel(pixel);

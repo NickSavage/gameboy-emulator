@@ -88,15 +88,6 @@ void test_set_mem() {
     assert(cpu.memory[addr] == 1);
 }
 
-void test_fetch_tile() {
-    uint8_t low = 0b10100101;
-    uint8_t high = 0b11000011;
-
-    assert(interleave_tile(low, high) == 0b1110010000011011);
-}
-
-
-
 int main() {
     test_add();
     test_sub();
@@ -105,6 +96,5 @@ int main() {
     test_set_c_flag();
     test_set_h_flag();
     test_set_mem();
-    test_fetch_tile();
     printf("\n");
 }

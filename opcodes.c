@@ -82,7 +82,10 @@ void load_reg_16(struct CPU *cpu, unsigned char reg, unsigned char low, unsigned
     } else if (reg == 2) {
 	cpu->regs[REG_H] = high;
 	cpu->regs[REG_L] = low;
-    } else {
+    } else if (reg == 3) {
+	cpu->sp = (high << 8) + low;
+	
+    }else {
 	printf("error: load_reg_16 out of bounds, %d", reg);
     }
     
@@ -176,23 +179,6 @@ uint16_t interleave_tile(uint8_t low, uint8_t high) {
         result |= (high & (1 << i)) << (i + 1);
         result |= (low & (1 << i)) << i;
     }
+    printf("%d",result);
     return result;
-}
-
-uint16_t* fetch_tile(struct CPU *cpu, uint16_t addr) {
-    uint16_t* tile = malloc(8 * sizeof(uint16_t)); // Allocate memory for 8 uint16_t elements
-    
-    tile[0] = interleave_tile(cpu->memory[addr], cpu->memory[addr + 1]);
-    tile[1] = interleave_tile(cpu->memory[addr + 2], cpu->memory[addr + 3]);
-    tile[2] = interleave_tile(cpu->memory[addr + 4], cpu->memory[addr + 5]);
-    tile[3] = interleave_tile(cpu->memory[addr + 6], cpu->memory[addr + 7]);
-    tile[4] = interleave_tile(cpu->memory[addr + 8], cpu->memory[addr + 9]);
-    tile[5] = interleave_tile(cpu->memory[addr + 10], cpu->memory[addr + 11]);
-    tile[6] = interleave_tile(cpu->memory[addr + 12], cpu->memory[addr + 13]);
-    tile[7] = interleave_tile(cpu->memory[addr + 14], cpu->memory[addr + 15]);
-    for (int i = 0; i < 8; i++) {
-	printf("%X", tile[i]);
-    }
-    printf("\n");
-    return tile;
 }
