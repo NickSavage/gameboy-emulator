@@ -203,6 +203,20 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	printf(" ld a, [DE]");
 	cpu->regs[REG_A] = cpu->memory[addr];
     }
+    else if (first == 0b11110000) {
+	// ldh a, 0xFF00 + n
+
+	printf(" ldh a, [%x]", 0xFF00 + second);
+	cpu->regs[REG_A] = cpu->memory[0xFF00+second];
+	ret = 1;
+    }
+    else if (first == 0b11100000) {
+	// ldh 
+	printf(" ldh [%x], a", 0xFF00 + second);
+	cpu->memory[0xFF00+second] = cpu->regs[REG_A];
+	ret = 1;
+	
+    }
     else if ((first & 0b11111000) == 0b10000000) {
 	// add r
 	int reg = (first & 0b00111000) >> 3;
@@ -367,7 +381,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	putchar(' ');
 	printByteAsBinary(third);
 	printf(" unknown");
-	exit(0);
+	ret = -1;
     }
     putchar('\n');
     return ret;
@@ -490,10 +504,10 @@ int main(int argc, char *argv[]) {
 	printByteAsBinary(cpu.rom[ppc]);
 	putchar(' ');
 	ret = parse_opcode(&cpu, ppc);
-	/* if (ret == -1) { */
-	/*     output_memory(&cpu); */
-	/*     break; */
-	/* } */
+	if (ret == -1) {
+	    output_memory(&cpu);
+	    break;
+	}
 	ppc += ret;
 	ppc++;
 	/* while (SDL_PollEvent(&event)) { */
@@ -513,7 +527,6 @@ int main(int argc, char *argv[]) {
 	//SDL_Delay(2000);
 
     }
-    build_fb(&cpu, fb);
     putchar('\n');
     for (int i = 0; i < 8; i+=2) {
 	printf("%s%s:", regNames[i],regNames[i + 1]);
