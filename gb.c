@@ -319,6 +319,15 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	cpu->regs[REG_H] = high;
 	cpu->regs[REG_L] = low;
     }
+    else if ((first & 0b11000111) == 0b00000101) {
+	// dec r
+	uint8_t reg = (first >> 3) & 0b00111;
+
+	printf("dec %s", regNames[reg]);
+	cpu->regs[reg] -= 1;
+	
+	reg = -1;
+    }
     else if (first == 0x0B) {
 	printf("dec bc");
 	int total = (cpu->regs[REG_B] << 8) + cpu->regs[REG_C] - 1;
@@ -373,6 +382,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	if (cc == COND_C && (check_flag_c(cpu) == 1)) {
 	    ppc += (int8_t)second;
 	} else if (cc == COND_NZ && (get_z_flag(cpu) == 0)) {
+	    printf("does htis get triggered?")
 	    ppc += (int8_t)second;
 	} else {
 	    ret = 1;
@@ -462,7 +472,7 @@ void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH]) {
 	    colour_pixel = colourize_pixel(pixel);
 
 	    fb[ly][x] = colour_pixel;
-	    printf("ly: %d, x: %d, tile_x: %d, tile_y: %d, tile_index: %d, pixel: %d\n", ly, x, tile_x, tile_y, tile_index, pixel);
+	    //	    printf("ly: %d, x: %d, tile_x: %d, tile_y: %d, tile_index: %d, pixel: %d\n", ly, x, tile_x, tile_y, tile_index, pixel);
 	}
     }
 }
