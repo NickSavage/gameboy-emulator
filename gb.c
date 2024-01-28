@@ -407,6 +407,14 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	putchar('\n');
 	//sleep(1);
     }
+    else if ((first & 0b11001111) == 0b11000101) {
+	// push rr
+	int reg = (first & 0b00110000) >> 4;
+	printf(" push %s", reg_names_16[reg]);
+	ret = -1;
+	
+	
+    }
     else if ((first & 0b11111111) == 0b11110011) {
 	// disable interrupts
 	cpu->ime = 0;

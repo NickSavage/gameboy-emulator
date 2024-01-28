@@ -26,6 +26,8 @@ void and(struct CPU *cpu, unsigned char amount);
 void or(struct CPU *cpu, unsigned char reg);
 void xor(struct CPU *cpu, unsigned char reg);
 
+void push(struct CPU *cpu, uint8_t reg);
+
 uint16_t* fetch_tile(struct CPU *cpu, uint16_t addr);
 uint16_t interleave_tile(uint8_t low, uint8_t high);
 

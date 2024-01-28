@@ -88,6 +88,17 @@ void test_set_mem() {
     assert(cpu.memory[addr] == 1);
 }
 
+void test_push() {
+    struct CPU cpu;
+    load_reg(&cpu, REG_B, 0b11110000);
+    load_reg(&cpu, REG_C, 0b00001111);
+    cpu.sp=0x8000;
+    push(&cpu, 0);
+    assert(cpu.sp == 0x7ffe);
+    assert(cpu.memory[0x7fff] == 0b11110000);
+    assert(cpu.memory[0x7ffe] == 0b00001111);
+}
+
 int main() {
     test_add();
     test_sub();
@@ -96,5 +107,6 @@ int main() {
     test_set_c_flag();
     test_set_h_flag();
     test_set_mem();
+    test_push();
     printf("\n");
 }

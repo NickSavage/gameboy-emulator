@@ -176,6 +176,22 @@ void xor(struct CPU *cpu, unsigned char reg) {
     set_h_flag(cpu, 0);
 }
 
+void push(struct CPU *cpu, uint8_t reg) {
+    if (reg == 0) {
+	cpu->memory[cpu->sp - 1] = cpu->regs[REG_B];
+	cpu->memory[cpu->sp - 2] = cpu->regs[REG_C];
+    } else if (reg == 1) {
+	cpu->memory[cpu->sp - 1] = cpu->regs[REG_D];
+	cpu->memory[cpu->sp - 2] = cpu->regs[REG_E];
+	
+    } else if (reg == 2) {
+	cpu->memory[cpu->sp - 1] = cpu->regs[REG_H];
+	cpu->memory[cpu->sp - 2] = cpu->regs[REG_L];
+    } else {
+	printf("something is out of bounds");
+    }
+    cpu->sp -= 2;
+}
 
 uint16_t interleave_tile_pixel(uint8_t low, uint8_t high, uint8_t index) {
     uint16_t result = 0;
