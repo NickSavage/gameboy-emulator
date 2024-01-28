@@ -14,6 +14,17 @@ void test_add() {
     assert(cpu.regs[7] == amount);
 }
 
+void test_add_16() {
+    struct CPU cpu;
+    load_reg(&cpu, REG_H, 0x98);
+    load_reg(&cpu, REG_L, 0x34);
+    load_reg(&cpu, REG_D, 0x00);
+    load_reg(&cpu, REG_E, 0x0C);
+    add_16(&cpu, 2, (cpu.regs[REG_D] << 8) + cpu.regs[REG_E]);
+    assert(cpu.regs[REG_H] == 0x98);
+    assert(cpu.regs[REG_L] == 0x40);
+}
+
 void test_sub() {
     unsigned char amount = 0b00010000;
     struct CPU cpu;
@@ -88,7 +99,7 @@ void test_set_mem() {
     assert(cpu.memory[addr] == 1);
 }
 
-void test_push() {
+void test_push_pop() {
     struct CPU cpu;
     load_reg(&cpu, REG_B, 0b11110000);
     load_reg(&cpu, REG_C, 0b00001111);
@@ -97,16 +108,25 @@ void test_push() {
     assert(cpu.sp == 0x7ffe);
     assert(cpu.memory[0x7fff] == 0b11110000);
     assert(cpu.memory[0x7ffe] == 0b00001111);
+    load_reg(&cpu, REG_B, 0);
+    load_reg(&cpu, REG_C, 0);
+    assert(cpu.regs[REG_B] == 0);
+    assert(cpu.regs[REG_B] == 0);
+    pop(&cpu, 0);
+    assert(cpu.sp == 0x8000);
+    assert(cpu.regs[REG_B] == 0b11110000);
+    assert(cpu.regs[REG_C] == 0b00001111);
 }
 
 int main() {
     test_add();
+    test_add_16();
     test_sub();
     test_xor();
     test_set_n_flag();
     test_set_c_flag();
     test_set_h_flag();
     test_set_mem();
-    test_push();
+    test_push_pop();
     printf("\n");
 }

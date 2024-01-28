@@ -109,6 +109,33 @@ void add(struct CPU *cpu, unsigned char amount) {
     }
 }
 
+void add_16(struct CPU *cpu, uint8_t reg, uint16_t amount) {
+    int total; 
+    
+    if (reg == 0) {
+	total = (cpu->regs[REG_B] << 8) + cpu->regs[REG_C] + amount;
+	cpu->regs[REG_B] = (total >> 8) & 0xFF;
+	cpu->regs[REG_C] = total & 0xFF;
+	
+    } else if (reg == 1) {
+	total = (cpu->regs[REG_D] << 8) + cpu->regs[REG_E] + amount;
+	cpu->regs[REG_D] = (total >> 8) & 0xFF;
+	cpu->regs[REG_E] = total & 0xFF;
+	
+    } else if (reg == 2) {
+	total = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L] + amount;
+	cpu->regs[REG_H] = (total >> 8) & 0xFF;
+	cpu->regs[REG_L] = total & 0xFF;
+    } else if (reg == 3) {
+	printf("not implemented");
+	exit(0);
+    }else {
+	exit(0);
+	printf("error: load_reg_16 out of bounds, %d\n", reg);
+    }
+    
+}
+
 void decrement_8(struct CPU *cpu, uint8_t reg) {
     cpu->regs[reg] -= 1;
 
@@ -192,12 +219,26 @@ void push(struct CPU *cpu, uint8_t reg) {
     }
     cpu->sp -= 2;
 }
+void pop(struct CPU *cpu, uint8_t reg) {
+    if (reg == 0) {
+	cpu->regs[REG_C] = cpu->memory[cpu->sp];
+	cpu->regs[REG_B] = cpu->memory[cpu->sp + 1];
+    } else if (reg == 1) {
+	cpu->regs[REG_E] = cpu->memory[cpu->sp];
+	cpu->regs[REG_D] = cpu->memory[cpu->sp + 1];
+    } else if (reg == 2) {
+	cpu->regs[REG_L] = cpu->memory[cpu->sp];
+	cpu->regs[REG_H] = cpu->memory[cpu->sp + 1];
+    } else {
+	printf("something is out of bounds");
+    }
+    cpu->sp += 2;
+}
 
 uint16_t interleave_tile_pixel(uint8_t low, uint8_t high, uint8_t index) {
     uint16_t result = 0;
 
-    result |= (high & (1 << index)) << 1;
-    result |= (low & (1 << index));
+    result = (((high >> index) & 0x1) << 1) + ((low >> index) & 0x1);
     return result;
 }
 uint16_t interleave_tile(uint8_t low, uint8_t high) {

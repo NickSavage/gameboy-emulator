@@ -249,6 +249,21 @@ int parse_opcode(struct CPU *cpu, int pc) {
 
 	ret = 1;
     }
+    else if (first == 0x09) {
+	// add hl, de
+	printf(" add hl, bc");
+	add_16(cpu, 2, (cpu->regs[REG_B] << 8) + cpu->regs[REG_C]);
+    }
+    else if (first == 0x19) {
+	// add hl, de
+	printf(" add hl, de");
+	add_16(cpu, 2, (cpu->regs[REG_D] << 8) + cpu->regs[REG_E]);
+    }
+    else if (first == 0x29) {
+	// add hl, de
+	printf(" add hl, hl");
+	add_16(cpu, 2, (cpu->regs[REG_H] << 8) + cpu->regs[REG_L]);
+    }
     else if ((first & 0b11111000) == 0b10010000) {
 	// sub r
 	int reg = (first & 0b00111000) >> 3;
@@ -411,9 +426,22 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	// push rr
 	int reg = (first & 0b00110000) >> 4;
 	printf(" push %s", reg_names_16[reg]);
-	ret = -1;
-	
-	
+	push(cpu, reg);
+    }
+    else if (first == 0xC1) {
+	// pop rr
+	printf(" pop bc");
+	pop(cpu, 0);
+    }
+    else if (first == 0xD1) {
+	// pop rr
+	printf(" pop de");
+	pop(cpu, 1);
+    }
+    else if (first == 0xE1) {
+	// pop rr
+	printf(" pop hl");
+	pop(cpu, 2);
     }
     else if ((first & 0b11111111) == 0b11110011) {
 	// disable interrupts
@@ -447,13 +475,29 @@ uint8_t bg_tile_data_mode(struct CPU *cpu) {
 uint32_t colourize_pixel(int input) {
     uint32_t result = 0;
 
-    if (input > 0) {
-	//if (((input >> (16 -index)) & 0b11) > 0) {
-	result = 0xFFFFFFFF;
+    //   printf("%d\n", input);
+    if (input == 3) {
+	result = 0x00000000;
+	
+    } else if (input == 2) {
+	result = 0xa9a9a9a9;
+	
+    } else if (input == 1) {
+
+	result = 0xD3D3D3D3;
+	
     } else {
-	result = 0x00;
+	result = 0xFFFFFFFF;
+	
     }
-    //    printf(", %x\n", result);
+    /* if (input > 0) { */
+    /* 	//if (((input >> (16 -index)) & 0b11) > 0) { */
+    /* 	result = 0xFFFFFFFF; */
+    /* }  */
+
+    /* else { */
+    /* 	result = 0x00; */
+    /* } */
     return result;
 }
 
@@ -497,7 +541,7 @@ void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH]) {
 	    else {
 		addr = (tile_id > 127 ? 0x8800 : 0x9000) + tile_id * 16 + tile_pixel_y * 2;
 	    }
-	    pixel = interleave_tile_pixel(cpu->memory[addr], cpu->memory[addr + 1], 8 -tile_pixel_x);
+	    pixel = interleave_tile_pixel(cpu->memory[addr], cpu->memory[addr + 1], 7 - tile_pixel_x);
 	    colour_pixel = colourize_pixel(pixel);
 
 	    fb[ly][x] = colour_pixel;

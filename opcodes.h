@@ -18,6 +18,7 @@ void load_reg(struct CPU *cpu, unsigned char reg, unsigned char amount);
 void load_reg_16(struct CPU *cpu, unsigned char reg, unsigned char low, unsigned char high);
 void set_mem(struct CPU *cpu, uint16_t addr, uint8_t amount);
 void add(struct CPU *cpu, unsigned char amount);
+void add_16(struct CPU *cpu, uint8_t reg, uint16_t amount);
 void sub(struct CPU *cpu, unsigned char amount);
 void decrement_8(struct CPU *cpu, uint8_t reg);
 void decrement_16(struct CPU *cpu, uint8_t reg);
@@ -27,6 +28,7 @@ void or(struct CPU *cpu, unsigned char reg);
 void xor(struct CPU *cpu, unsigned char reg);
 
 void push(struct CPU *cpu, uint8_t reg);
+void pop(struct CPU *cpu, uint8_t reg);
 
 uint16_t* fetch_tile(struct CPU *cpu, uint16_t addr);
 uint16_t interleave_tile(uint8_t low, uint8_t high);
