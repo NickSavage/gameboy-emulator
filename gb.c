@@ -390,7 +390,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
     else if ((first & 0b11111111) == 0b00011000) {
 	// jr e
 	printf(" jr %d", (int8_t)second);
-	ppc += (int8_t)second;
+	ppc += (int8_t)second + 1;
 	//	ret = -1;
     }
     else if ((first & 0b11100111) == 0b00100000) {
