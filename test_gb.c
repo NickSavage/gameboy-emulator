@@ -8,8 +8,8 @@
 void test_add() {
     unsigned char amount = 0b00010000;
     struct CPU cpu;
-    load_reg(&cpu, 7, 0);
-    add(&cpu, amount);
+    load_reg(&cpu, REG_A, 0);
+    add(&cpu, REG_A, amount);
 
     assert(cpu.regs[7] == amount);
 }
@@ -63,10 +63,10 @@ void test_set_z_flag() {
     
     struct CPU cpu;
     load_reg(&cpu, REG_A, 0);
-    set_z_flag(&cpu);
+    set_z_flag(&cpu, REG_A);
     assert(get_z_flag(&cpu) == 0);
     load_reg(&cpu, REG_A, 1);
-    set_z_flag(&cpu);
+    set_z_flag(&cpu, REG_A);
 }
 
 void test_set_n_flag() {
@@ -133,6 +133,15 @@ void test_call_ret() {
     assert(cpu.sp == 0xaabb);
 }
 
+void test_swap() {
+    struct CPU cpu;
+
+    uint8_t amount = 0b11110000;
+    load_reg(&cpu, REG_A, amount);
+    swap(&cpu, REG_A);
+    assert(cpu.regs[REG_A] == 0b00001111);
+}
+
 int main() {
     test_add();
     test_add_16();
@@ -144,5 +153,6 @@ int main() {
     test_set_mem();
     test_push_pop();
     test_call_ret();
+    test_swap();
     printf("\n");
 }

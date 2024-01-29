@@ -38,7 +38,7 @@ void init_cpu(struct CPU *cpu) {
 }
     
 
-unsigned char* readFile(char *filename, size_t* size) {
+unsigned char* readFile(char *filename, int* size) {
     
     FILE *file;
     unsigned char *buffer;
@@ -95,22 +95,52 @@ int check_flag_c(struct CPU *cpu) {
     return ret;
 }
 
+int parse_cb_opcode(struct CPU *cpu, int pc) {
+    unsigned char first = cpu->memory[cpu->pc];
+
+    int result = 0;
+    switch(first) {
+    case (0x87):
+	printf(" res 0, a");
+	int reg = REG_A;
+	reset_bit(cpu, reg, 0);
+	break;
+    default:
+	printf("unimplemented cb opcode");
+	exit(0);
+
+    }
+    putchar('\n');
+    return result;
+}
+
 int parse_opcode(struct CPU *cpu, int pc) {
     
-    unsigned char first = cpu->rom[pc];
-    unsigned char second = cpu->rom[pc + 1];
-    unsigned char third = cpu->rom[pc + 2];
+    unsigned char first = cpu->memory[pc];
+    unsigned char second = cpu->memory[pc + 1];
+    unsigned char third = cpu->memory[pc + 2];
     uint16_t addr;
+    uint8_t reg;
 
     int found = 1;
     int ret = 0;
     
     switch (first) {
+    case(0x00):
+	printf(" noop");
+	break;
+    case(0x04): case(0x14): case(0x24): case(0x34): case(0x0c): case(0x1c):case(0x2c): case(0x3c):
+	// inc r
+	reg = (first & 0b00111000) >> 3;
+	printf(" inc %s", regNames[reg]);
+	add(cpu, reg, 1);
+
+	break;
     case(0x06): case(0x16): case(0x26): case(0x0e): case(0x1e): case(0x2e): case(0x3e): case(0x4e):
 	// ld r, n
 	printByteAsBinary(second);
 	int reg = (first & 0b00111000) >> 3;
-	printf(" ld %s, %d", regNames[reg], second);
+	printf(" ld %s, $%x", regNames[reg], second);
 	load_reg(cpu, reg, second);
 	ret = 1;
 	break;
@@ -118,13 +148,15 @@ int parse_opcode(struct CPU *cpu, int pc) {
     case(0xc9):
 	// ret
 
+	printf(" ret");
 	ret_function(cpu);
-	cpu->pc -= 1;
+	//	cpu->pc -= 1;
 
 	break;
 	    
     case (0x2a):
 	// ld a, (HL+)
+	printf("ld a, [hl+]");
 	addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
 	load_reg(cpu, REG_A, cpu->memory[addr]);
 
@@ -136,13 +168,45 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	cpu->regs[REG_L] = total & 0xFF;
 	
 	break;
+    case(0xcb):
+	// cb, prefix, still not really sure what this is
+	printf("cb");
+	cpu->pc += 1;
+	ret = parse_cb_opcode(cpu, cpu->pc + 1);
+
+	return ret;
+	
     case(0xcd):
 	// call nn
 	addr = (third << 8) + second;
 	printf(" call [%x]", addr);
+	cpu->pc += 2;
 	call(cpu, third, second);
+
+	printf("%x, %x, %x \n", cpu->sp, cpu->memory[cpu->sp + 1], cpu->memory[cpu-> sp]);
+	output_memory(cpu);
 	
 	cpu->pc = addr - 1;
+	break;
+    case(0xe2):
+	addr = 0xFF00 + cpu->regs[REG_C];
+	printf(" ldh [c], a - [$%x]", addr);
+	cpu->memory[addr] = cpu->regs[REG_A];
+	break;
+    case(0xe6):
+	printf("and $%x", second);
+	and(cpu, second);
+	ret = 1;
+	break;
+    case(0xf6):
+	// or a, n
+	printf("or a, $%x", second);
+	or_8(cpu, second);
+	ret = 1;
+	break;
+	
+    case(0xfb):
+	printf(" ei");
 	break;
     default:
 	found = 0;
@@ -279,14 +343,14 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	int reg = (first & 0b00111000) >> 3;
 	printf(" add %s", regNames[reg]);
 	
-	add(cpu, cpu->regs[reg]);
+	add(cpu, REG_A, cpu->regs[reg]);
     }
     else if ((first & 0b11111111) == 0b11000110) {
 	// add n
 	printByteAsBinary(second);
 	putchar(' ');
 	printf(" add a, %d", second);
-	add(cpu, second);
+	add(cpu, REG_A, second);
 
 	ret = 1;
     }
@@ -317,7 +381,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	//cp n
 	printByteAsBinary(second);
 	putchar(' ');
-	printf(" cp %d", second);
+	printf(" cp %x", second);
 
 	compare(cpu, second);
 	ret = 1;
@@ -404,7 +468,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
     else if ((first & 0b11111111) == 0b11000011) {
 	// jp
 	int addr = (third << 8) + second;
-	printf(" JP %d", addr);
+	printf(" JP %x", addr);
 	cpu->pc = addr - 1;
     }
     else if ((first & 0b11100111) == 0b11000010) {
@@ -430,9 +494,13 @@ int parse_opcode(struct CPU *cpu, int pc) {
     }
     else if ((first & 0b11111111) == 0b00011000) {
 	// jr e
-	printf(" jr %d", (int8_t)second);
-	cpu->pc += (int8_t)second + 1;
-	//	ret = -1;
+	printf(" jr %x", (int8_t)second);
+	if ((int8_t)second < 1) {
+	    cpu->pc += (int8_t)second + 1;
+	} else {
+	    cpu->pc += (int8_t)second;
+	}
+	ret = 1;
     }
     else if ((first & 0b11100111) == 0b00100000) {
 	// jr cc, nn
@@ -587,7 +655,7 @@ int main(int argc, char *argv[]) {
     }
     signal(SIGINT, quit);
 
-    size_t size;
+    int size;
     int ret = 0;
     int running = 1;
     
@@ -627,8 +695,11 @@ int main(int argc, char *argv[]) {
     printf("%d", cpu.rom);
     
     while(running != 0) {
+	if (cpu.pc == 0) {
+	    printf("asdf");
+	}
 	printf("%x - ", cpu.pc);
-	printByteAsBinary(cpu.rom[cpu.pc]);
+	printByteAsBinary(cpu.memory[cpu.pc]);
 	putchar(' ');
 	ret = parse_opcode(&cpu, cpu.pc);
 	if (ret == -1) {

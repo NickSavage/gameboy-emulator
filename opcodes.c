@@ -10,8 +10,8 @@ void printByteAsBinary(unsigned char byte) {
 }
 
 
-void set_z_flag(struct CPU *cpu) {
-    if (cpu->regs[REG_A] == 0) {
+void set_z_flag(struct CPU *cpu, uint8_t reg) {
+    if (cpu->regs[reg] == 0) {
 	cpu->regs[REG_F] |= 1 << FLAG_Z;
     } else {
         cpu->regs[REG_F] &= ~(1 << FLAG_Z);
@@ -67,6 +67,17 @@ int get_h_flag(struct CPU *cpu) {
     return ret;
 }
 
+void reset_bit(struct CPU *cpu, uint8_t reg, uint8_t bit) {
+    uint8_t bitmask = 0xFF ^ (1 << bit);
+    cpu->regs[reg] &= bitmask;
+}
+void swap(struct CPU *cpu, uint8_t reg) {
+    uint8_t high = cpu->regs[reg] >> 4;
+    uint8_t low = cpu->regs[reg] & 0b00001111;
+
+    cpu->regs[reg] = (low << 4) + high;
+}
+
 void load_reg(struct CPU *cpu, unsigned char reg, unsigned char amount) {
     cpu->regs[reg] = amount;
 }
@@ -95,14 +106,14 @@ void set_mem(struct CPU *cpu, uint16_t addr, uint8_t amount) {
     cpu->memory[addr] = amount;
 }
 
-void add(struct CPU *cpu, unsigned char amount) {
-    cpu->regs[REG_A] += amount;
+void add(struct CPU *cpu, uint8_t reg, unsigned char amount) {
+    cpu->regs[reg] += amount;
 
-    set_z_flag(cpu);
+    set_z_flag(cpu, reg);
     
     cpu->regs[REG_F] |= 0 << FLAG_N;
-    printf("%d, %d", cpu->regs[REG_A], amount);
-    if ((cpu->regs[REG_A]) < 0) {
+    printf("%d, %d", cpu->regs[reg], amount);
+    if ((cpu->regs[reg]) < 0) {
 	cpu->regs[REG_F] |= 1 << FLAG_C;
     } else {
 	cpu->regs[REG_F] |= 0 << FLAG_C;
@@ -151,7 +162,7 @@ void decrement_8(struct CPU *cpu, uint8_t reg) {
 void sub(struct CPU *cpu, unsigned char amount) {
     cpu->regs[REG_A] -= amount;
     
-    set_z_flag(cpu);
+    set_z_flag(cpu, REG_A);
     cpu->regs[REG_F] |= 1 << FLAG_N;
     if ((cpu->regs[REG_A] - amount) < 0) {
 	cpu->regs[REG_F] |= 1 << FLAG_C;
@@ -180,24 +191,30 @@ void compare(struct CPU *cpu, unsigned char amount) {
 void and(struct CPU *cpu, unsigned char amount) {
     cpu->regs[REG_A]= cpu->regs[REG_A] & amount;
     
-    set_z_flag(cpu);
+    set_z_flag(cpu, REG_A);
     set_n_flag(cpu, 0);
     set_c_flag(cpu, 0);
     set_h_flag(cpu, 1);
 }
 
-void or(struct CPU *cpu, unsigned char reg) {
-    cpu->regs[REG_A] = cpu->regs[REG_A] | cpu->regs[reg];
-    set_z_flag(cpu);
+void or_8(struct CPU *cpu, uint8_t amount) {
+    
+    cpu->regs[REG_A] = cpu->regs[REG_A] | amount;
+    set_z_flag(cpu, REG_A);
     set_n_flag(cpu, 0);
     set_c_flag(cpu, 0);
     set_h_flag(cpu, 0);
+    
 }
+void or(struct CPU *cpu, unsigned char reg) {
+    or_8(cpu, cpu->regs[reg]);
+}
+
 
 void xor(struct CPU *cpu, unsigned char reg) {
     cpu->regs[REG_A] = cpu->regs[REG_A] ^ cpu->regs[reg];
 
-    set_z_flag(cpu);
+    set_z_flag(cpu, REG_A);
     set_n_flag(cpu, 0);
     set_c_flag(cpu, 0);
     set_h_flag(cpu, 0);
@@ -238,6 +255,7 @@ void call(struct CPU *cpu, uint8_t high, uint8_t low) {
 
     cpu->memory[cpu->sp - 1] = (cpu->pc >> 8) & 0xFF;
     cpu->memory[cpu->sp - 2] = cpu->pc & 0xFF;
+    printf(" - %x, %x, %x, ret: \n", cpu->sp, cpu->memory[cpu->sp - 1], cpu->memory[cpu-> sp - 2]);
     cpu->sp -= 2;
     cpu->pc = (high << 8) + low;
 }
