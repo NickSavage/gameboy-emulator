@@ -16,8 +16,6 @@
 static const char *regNames[] = {"b", "c", "d", "e", "h", "l", "f", "a"};
 static const char *reg_names_16[] = {"bc", "de", "hl", "sp"};
 
-int16_t ppc;
-
 void quit(int sig) {
     if (sig == SIGINT) {
 	exit(0);
@@ -31,7 +29,8 @@ void init_screen(struct CPU *cpu) {
 }
 
 void init_cpu(struct CPU *cpu) {
-    cpu->pc = 36;
+
+    cpu->pc = 0x0100;
     cpu->memory[0xFF44] = 144; // plugged, relates to vblank
     for (int i = 0x0000; i < 0x7fff; i++) {
 	cpu->memory[i] = cpu->rom[i];
@@ -107,12 +106,21 @@ int parse_opcode(struct CPU *cpu, int pc) {
     int ret = 0;
     
     switch (first) {
+    case(0x06): case(0x16): case(0x26): case(0x0e): case(0x1e): case(0x2e): case(0x3e): case(0x4e):
+	// ld r, n
+	printByteAsBinary(second);
+	int reg = (first & 0b00111000) >> 3;
+	printf(" ld %s, %d", regNames[reg], second);
+	load_reg(cpu, reg, second);
+	ret = 1;
+	break;
+	
     case(0xc9):
 	// ret
 
-	addr = (cpu->memory[cpu->sp] << 8) + cpu->memory[cpu->sp + 1];
-	ppc = addr;
-	cpu->sp += 2;
+	ret_function(cpu);
+	cpu->pc -= 1;
+
 	break;
 	    
     case (0x2a):
@@ -134,7 +142,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	printf(" call [%x]", addr);
 	call(cpu, third, second);
 	
-	ppc = addr - 1;
+	cpu->pc = addr - 1;
 	break;
     default:
 	found = 0;
@@ -153,16 +161,6 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	uint16_t addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
 	cpu->memory[addr] = second;
 
-	ret = 1;
-    }
-    else if ((first & 0b11000111) == 0b00000110) {
-	// ld r, n
-	// load register immediate
-	printByteAsBinary(second);
-	int reg = (first & 0b00111000) >> 3;
-	printf(" ld %s, %d", regNames[reg], second);
-	printf(" -- %d -- ", reg);
-	cpu->regs[reg] = second;
 	ret = 1;
     }
     else if ((first & 0b11111111) == 0b11111010 ) {
@@ -407,7 +405,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	// jp
 	int addr = (third << 8) + second;
 	printf(" JP %d", addr);
-	ppc = addr - 1;
+	cpu->pc = addr - 1;
     }
     else if ((first & 0b11100111) == 0b11000010) {
 	// jp cc, n
@@ -421,9 +419,9 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	printf(" JP %d, %d", cc, addr);
 
 	if (cc == COND_NC && !(check_flag_c(cpu) == 1)) {
-	    ppc = addr - 1;
+	    cpu->pc = addr - 1;
 	} else if (cc == COND_C && (check_flag_c(cpu) == 1)) {
-	    ppc = addr - 1;
+	    cpu->pc = addr - 1;
 	} else {
 	    
 	    ret = 2;
@@ -433,7 +431,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
     else if ((first & 0b11111111) == 0b00011000) {
 	// jr e
 	printf(" jr %d", (int8_t)second);
-	ppc += (int8_t)second + 1;
+	cpu->pc += (int8_t)second + 1;
 	//	ret = -1;
     }
     else if ((first & 0b11100111) == 0b00100000) {
@@ -446,10 +444,10 @@ int parse_opcode(struct CPU *cpu, int pc) {
 
 	ret = 1;
 	if (cc == COND_C && (check_flag_c(cpu) == 1)) {
-	    ppc += (int8_t)second;
+	    cpu->pc += (int8_t)second;
 	} else if (cc == COND_NZ && (get_z_flag(cpu) == 0)) {
 	    printf("does htis get triggered?");
-	    ppc += (int8_t)second;
+	    cpu->pc += (int8_t)second;
 	} else {
 	    ret = 1;
 	}
@@ -624,22 +622,21 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < size; i++) {
 	cpu.rom[i] = data[i];
     }
-    ppc = 0x0100;
     
     init_cpu(&cpu);
     printf("%d", cpu.rom);
     
     while(running != 0) {
-	printf("%x - ", ppc);
-	printByteAsBinary(cpu.rom[ppc]);
+	printf("%x - ", cpu.pc);
+	printByteAsBinary(cpu.rom[cpu.pc]);
 	putchar(' ');
-	ret = parse_opcode(&cpu, ppc);
+	ret = parse_opcode(&cpu, cpu.pc);
 	if (ret == -1) {
 	    output_memory(&cpu);
 	    break;
 	}
-	ppc += ret;
-	ppc++;
+	cpu.pc += ret;
+	cpu.pc++;
 	/* while (SDL_PollEvent(&event)) { */
 	/*     if (event.key.keysym.sym == SDLK_q) { */
 	/* 	running = 0; */

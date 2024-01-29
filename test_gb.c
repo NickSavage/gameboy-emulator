@@ -118,6 +118,21 @@ void test_push_pop() {
     assert(cpu.regs[REG_C] == 0b00001111);
 }
 
+void test_call_ret() {
+    struct CPU cpu;
+    
+    cpu.pc = 0x123;
+    cpu.sp = 0xaabb;
+    call(&cpu, 0x0a, 0x00);
+    assert(cpu.pc == 0xa00);
+    assert(cpu.sp == 0xaab9);
+    assert(cpu.memory[cpu.sp] == 0x23);
+    assert(cpu.memory[cpu.sp + 1] == 0x01);
+    ret_function(&cpu);
+    assert(cpu.pc == 0x123);
+    assert(cpu.sp == 0xaabb);
+}
+
 int main() {
     test_add();
     test_add_16();
@@ -128,5 +143,6 @@ int main() {
     test_set_h_flag();
     test_set_mem();
     test_push_pop();
+    test_call_ret();
     printf("\n");
 }

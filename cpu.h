@@ -23,9 +23,9 @@ static const int COND_C = 3;
 struct CPU {
     uint8_t memory[65535];
     int8_t rom[32768];
-    int16_t pc;
     unsigned char regs[8];
 
+    uint16_t pc;
     uint16_t sp;
     uint16_t ime; // interrupts register
 };
