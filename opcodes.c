@@ -78,6 +78,11 @@ void swap(struct CPU *cpu, uint8_t reg) {
     cpu->regs[reg] = (low << 4) + high;
 }
 
+void srl(struct CPU *cpu, uint8_t reg) {
+    set_c_flag(cpu, cpu->regs[reg] & 0x01);
+    cpu->regs[reg] = cpu->regs[reg] >> 1;
+}
+
 void load_reg(struct CPU *cpu, unsigned char reg, unsigned char amount) {
     cpu->regs[reg] = amount;
 }
@@ -178,13 +183,14 @@ void compare(struct CPU *cpu, unsigned char amount) {
     if (result == 0) {
 	cpu->regs[REG_F] |= 1 << FLAG_Z;
     } else {
-	cpu->regs[REG_F] |= 0 << FLAG_Z;
+
+        cpu->regs[REG_F] &= ~(1 << FLAG_Z);
     }
     cpu->regs[REG_F] |= 1 << FLAG_N;
     if (result < 0) {
 	cpu->regs[REG_F] |= 1 << FLAG_C;
     } else {
-	cpu->regs[REG_F] |= 0 << FLAG_C;
+        cpu->regs[REG_F] &= ~(1 << FLAG_C);
     }
 }
 

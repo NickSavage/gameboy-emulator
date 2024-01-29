@@ -33,6 +33,15 @@ void test_sub() {
 
     assert(cpu.regs[7] == 3);
 }
+
+void test_compare() {
+    struct CPU cpu;
+    load_reg(&cpu, REG_A, 0);
+    compare(&cpu, 32);
+    assert(get_z_flag(&cpu) == 0);
+    assert(get_c_flag(&cpu) == 1);
+}
+
 void test_and() {
     struct CPU cpu;
     load_reg(&cpu, REG_A, 0b00000000);
@@ -142,10 +151,23 @@ void test_swap() {
     assert(cpu.regs[REG_A] == 0b00001111);
 }
 
+void test_srl() {
+    struct CPU cpu;
+
+    uint8_t amount = 0b11110001;
+    set_c_flag(&cpu, 0);
+    load_reg(&cpu, REG_A, amount);
+    srl(&cpu, REG_A);
+    assert(cpu.regs[REG_A] == 0b01111000);
+    assert(get_c_flag(&cpu) == 1);
+    
+}
+
 int main() {
     test_add();
     test_add_16();
     test_sub();
+    test_compare();
     test_xor();
     test_set_n_flag();
     test_set_c_flag();
@@ -154,5 +176,6 @@ int main() {
     test_push_pop();
     test_call_ret();
     test_swap();
+    test_srl();
     printf("\n");
 }

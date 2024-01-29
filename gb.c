@@ -22,6 +22,17 @@ void quit(int sig) {
     }
 }
 
+void output_registers(struct CPU *cpu) {
+    putchar('\n');
+    for (int i = 0; i < 8; i+=2) {
+	printf("%s%s:", regNames[i],regNames[i + 1]);
+	printByteAsBinary(cpu->regs[i]);
+	putchar(' ');
+	printByteAsBinary(cpu->regs[i+1]);
+	putchar('\n');
+    }
+}
+
 void init_screen(struct CPU *cpu) {
 
     cpu->memory[0xFF42] = 0; // store scy in 0xFF42
@@ -82,7 +93,7 @@ void output_memory(struct CPU *cpu) {
     FILE *file = fopen("output.bin", "wb");
 
     // Write the array to the file
-    size_t elements_written = fwrite(cpu->memory, sizeof(int8_t), 65535, file);
+    size_t elements_written = fwrite(cpu->memory, sizeof(uint8_t), 65535, file);
     if (elements_written != 65535) {
         perror("Failed to write the full array");
         // Close the file before returning
@@ -98,11 +109,24 @@ int check_flag_c(struct CPU *cpu) {
 int parse_cb_opcode(struct CPU *cpu, int pc) {
     unsigned char first = cpu->memory[cpu->pc];
 
+    uint8_t reg;
     int result = 0;
     switch(first) {
+    case (0x30): case (0x31): case(0x32): case(0x33): case(0x34): case(0x35): case(0x36): case(0x37):
+	reg = first & 0b00000111;
+	printf(" swap %s", regNames[reg]);
+	swap(cpu, reg);
+	break;
+    case (0x38): case (0x39): case(0x3a): case(0x3b): case(0x3c): case(0x3d): case(0x3e): case(0x3f):
+	reg = first & 0b00000111;
+
+	printf(" srl %s", regNames[reg]);
+	srl(cpu, reg);
+
+	break;
     case (0x87):
 	printf(" res 0, a");
-	int reg = REG_A;
+	reg = REG_A;
 	reset_bit(cpu, reg, 0);
 	break;
     default:
@@ -124,6 +148,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 
     int found = 1;
     int ret = 0;
+    uint8_t cc;
     
     switch (first) {
     case(0x00):
@@ -145,6 +170,14 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	ret = 1;
 	break;
 	
+    case (0xc0): case(0xd0): case (0xc8): case(0xd8):
+	// ret cc
+	cc = (first & 0b00011000) >> 3;
+	printf(" ret %d", cc);
+	if (cc == COND_Z && get_z_flag(cpu) == 1) {
+	    ret_function(cpu);
+	}
+	break;
     case(0xc9):
 	// ret
 
@@ -383,7 +416,9 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	putchar(' ');
 	printf(" cp %x", second);
 
+	printf("- %x %x", cpu->regs[REG_A], second);
 	compare(cpu, second);
+	output_registers(cpu);
 	ret = 1;
     }
     else if ((first & 0b11111000) == 0b10100000) {
@@ -496,7 +531,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	// jr e
 	printf(" jr %x", (int8_t)second);
 	if ((int8_t)second < 1) {
-	    cpu->pc += (int8_t)second + 1;
+	    cpu->pc += (int8_t)second;
 	} else {
 	    cpu->pc += (int8_t)second;
 	}
@@ -513,8 +548,12 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	ret = 1;
 	if (cc == COND_C && (check_flag_c(cpu) == 1)) {
 	    cpu->pc += (int8_t)second;
+	} else if (cc == COND_Z && (get_z_flag(cpu) == 1)) {
+	    cpu->pc += (int8_t)second;
 	} else if (cc == COND_NZ && (get_z_flag(cpu) == 0)) {
 	    printf("does htis get triggered?");
+	    cpu->pc += (int8_t)second;
+	} else if (cc == COND_NC && (get_c_flag(cpu) == 0)) {
 	    cpu->pc += (int8_t)second;
 	} else {
 	    ret = 1;
@@ -698,7 +737,7 @@ int main(int argc, char *argv[]) {
 	if (cpu.pc == 0) {
 	    printf("asdf");
 	}
-	printf("%x - ", cpu.pc);
+	printf("%x - $%x - ", cpu.pc, cpu.memory[cpu.pc]);
 	printByteAsBinary(cpu.memory[cpu.pc]);
 	putchar(' ');
 	ret = parse_opcode(&cpu, cpu.pc);
@@ -708,11 +747,21 @@ int main(int argc, char *argv[]) {
 	}
 	cpu.pc += ret;
 	cpu.pc++;
-	/* while (SDL_PollEvent(&event)) { */
-	/*     if (event.key.keysym.sym == SDLK_q) { */
-	/* 	running = 0; */
-	/*     } */
-	/* } */
+	while (SDL_PollEvent(&event)) {
+	    if (event.type == SDL_KEYDOWN) {
+		switch(event.key.keysym.sym) {
+		case (SDLK_q):
+		    running = 0;
+		    break;
+		case (SDLK_a):
+		    cpu.memory[0xFF00] = 0b00011110;
+		    printf("a was pressed!\n");
+		    break;
+		}
+	    } else if (event.type == SDL_KEYUP) {
+		cpu.memory[0xFF00] = 0b00001111;
+	    }
+	}
 
 	if ((cpu.memory[0xFF40] & 0b10000000) >> 7 == 1) {
 	    SDL_SetRenderDrawColor(ren, 255, 255, 255, 255);
@@ -729,13 +778,8 @@ int main(int argc, char *argv[]) {
 
     }
     putchar('\n');
-    for (int i = 0; i < 8; i+=2) {
-	printf("%s%s:", regNames[i],regNames[i + 1]);
-	printByteAsBinary(cpu.regs[i]);
-	putchar(' ');
-	printByteAsBinary(cpu.regs[i+1]);
-	putchar('\n');
-    }
+    output_registers(&cpu);
+    output_memory(&cpu);
     // Free the memory
     free(data);
     
