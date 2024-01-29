@@ -234,6 +234,13 @@ void pop(struct CPU *cpu, uint8_t reg) {
     }
     cpu->sp += 2;
 }
+void call(struct CPU *cpu, uint8_t high, uint8_t low) {
+
+    cpu->memory[cpu->sp - 1] = high;
+    cpu->memory[cpu->sp - 2] = low;
+    cpu->sp -= 2;
+    cpu->pc = (high << 8) + low;
+}
 
 uint16_t interleave_tile_pixel(uint8_t low, uint8_t high, uint8_t index) {
     uint16_t result = 0;

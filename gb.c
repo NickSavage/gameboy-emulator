@@ -101,8 +101,51 @@ int parse_opcode(struct CPU *cpu, int pc) {
     unsigned char first = cpu->rom[pc];
     unsigned char second = cpu->rom[pc + 1];
     unsigned char third = cpu->rom[pc + 2];
+    uint16_t addr;
 
+    int found = 1;
     int ret = 0;
+    
+    switch (first) {
+    case(0xc9):
+	// ret
+
+	addr = (cpu->memory[cpu->sp] << 8) + cpu->memory[cpu->sp + 1];
+	ppc = addr;
+	cpu->sp += 2;
+	break;
+	    
+    case (0x2a):
+	// ld a, (HL+)
+	addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
+	load_reg(cpu, REG_A, cpu->memory[addr]);
+
+	int total = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L] + 1;
+	int high = (total >> 8) & 0xFF;
+	int low = total & 0xFF;
+
+	cpu->regs[REG_H] = (total >> 8) & 0xFF;
+	cpu->regs[REG_L] = total & 0xFF;
+	
+	break;
+    case(0xcd):
+	// call nn
+	addr = (third << 8) + second;
+	printf(" call [%x]", addr);
+	call(cpu, third, second);
+	
+	ppc = addr - 1;
+	break;
+    default:
+	found = 0;
+    }
+
+    
+    if (found == 1) {
+	
+	putchar('\n');
+	return ret;
+    }
     if (first == 0b00110110) {
 	// ld [HL], n
 	printByteAsBinary(second);
@@ -471,37 +514,26 @@ uint8_t bg_tile_data_mode(struct CPU *cpu) {
     return result;
     
 }
-
 uint32_t colourize_pixel(int input) {
-    uint32_t result = 0;
-
-    //   printf("%d\n", input);
-    if (input == 3) {
-	result = 0x00000000;
-	
-    } else if (input == 2) {
-	result = 0xa9a9a9a9;
-	
-    } else if (input == 1) {
-
-	result = 0xD3D3D3D3;
-	
-    } else {
-	result = 0xFFFFFFFF;
-	
+    // The input is expected to be a value between 0 and 3
+    // where 0 is white and 3 is black in the Game Boy's 2-bit color space.
+    switch (input) {
+        case 0: // White
+            return 0xFFFFFFFF; // ARGB for white
+        case 1: // Light gray
+            return 0xFFAAAAAA; // ARGB for light gray
+        case 2: // Dark gray
+            return 0xFF555555; // ARGB for dark gray
+        case 3: // Black
+            return 0xFF000000; // ARGB for black
+        default:
+            // If the input is out of range, return a noticeable color (e.g., red)
+            // to indicate an error or unexpected value.
+            return 0xFFFF0000;
     }
-    /* if (input > 0) { */
-    /* 	//if (((input >> (16 -index)) & 0b11) > 0) { */
-    /* 	result = 0xFFFFFFFF; */
-    /* }  */
-
-    /* else { */
-    /* 	result = 0x00; */
-    /* } */
-    return result;
 }
 
-// todo: this needs to build tiles first and then put them on the screen, instead of doing it on the fly like this
+
 void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH]) {
     uint8_t bg_tile_map_mode_addr = bg_tile_map_mode(cpu);
     uint8_t bg_tile_data_mode_addr = bg_tile_data_mode(cpu) == 1 ? 0x8000 : 0x9000;
@@ -573,7 +605,8 @@ int main(int argc, char *argv[]) {
     win = SDL_CreateWindow("Gameboy Emulator", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, LCD_WIDTH * 4, LCD_HEIGHT * 4, SDL_WINDOW_RESIZABLE);
     ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 
-    tex = SDL_CreateTexture(ren, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, LCD_WIDTH, LCD_HEIGHT);
+    tex = SDL_CreateTexture(ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, LCD_WIDTH, LCD_HEIGHT);
+    SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_NONE);
 
     if (win == NULL) {
         printf("SDL_CreateWindow Error: %s\n", SDL_GetError());
@@ -584,10 +617,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     
-    SDL_RenderSetLogicalSize(ren, LCD_WIDTH, LCD_HEIGHT);
-    SDL_SetRenderDrawColor(ren, 255, 255, 255, 255);
-    SDL_RenderClear(ren);
-    SDL_RenderPresent(ren);
     struct CPU cpu;
     struct PPU ppu;
 
@@ -618,9 +647,12 @@ int main(int argc, char *argv[]) {
 	/* } */
 
 	if ((cpu.memory[0xFF40] & 0b10000000) >> 7 == 1) {
+	    SDL_SetRenderDrawColor(ren, 255, 255, 255, 255);
+	    SDL_RenderClear(ren);
+
 	    build_fb(&cpu, fb);
-	    SDL_UpdateTexture(tex, NULL, fb, LCD_WIDTH * sizeof(uint32_t));
-	    //SDL_UpdateTexture(tex, NULL, fb, LCD_WIDTH);
+	    //	    SDL_UpdateTexture(tex, NULL, fb, LCD_WIDTH * sizeof(uint32_t));
+	    SDL_UpdateTexture(tex, NULL, fb, LCD_WIDTH * 4);
 	    SDL_RenderClear(ren);
 	    SDL_RenderCopy(ren, tex, NULL, NULL);
 	    SDL_RenderPresent(ren);
