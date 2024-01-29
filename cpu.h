@@ -1,6 +1,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#define LCD_WIDTH 160
+#define LCD_HEIGHT 144
+
 static const int REG_B = 0;
 static const int REG_C = 1;
 static const int REG_D = 2;
@@ -25,6 +28,7 @@ struct CPU {
     int8_t rom[32768];
     unsigned char regs[8];
 
+    uint8_t clock;
     uint16_t pc;
     uint16_t sp;
     uint16_t ime; // interrupts register
@@ -42,5 +46,8 @@ enum ppu_mode {
 struct PPU {
     enum ppu_mode mode;
     int cycles;
+    uint8_t dots;
     uint16_t buffer;
+
+    uint32_t fb[LCD_HEIGHT][LCD_WIDTH];
 };

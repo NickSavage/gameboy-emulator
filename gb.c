@@ -9,8 +9,6 @@
 
 #include "opcodes.h"
 
-#define LCD_WIDTH 160
-#define LCD_HEIGHT 144
 #define NUM_KEYS    8
 uint32_t KEYS[] =
 {
@@ -60,6 +58,7 @@ void init_screen(struct CPU *cpu) {
 
 void init_cpu(struct CPU *cpu) {
 
+    cpu->clock = 0;
     cpu->pc = 0x0100;
     cpu->memory[0xFF44] = 144; // plugged, relates to vblank
     for (int i = 0x0000; i < 0x7fff; i++) {
@@ -67,6 +66,9 @@ void init_cpu(struct CPU *cpu) {
     }
 }
     
+void init_ppu(struct PPU *ppu) {
+    ppu->dots = 0;
+}
 
 unsigned char* readFile(char *filename, int* size) {
     
@@ -658,7 +660,7 @@ uint32_t colourize_pixel(int input) {
 }
 
 
-void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH]) {
+void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH], uint8_t ly) {
     uint8_t bg_tile_map_mode_addr = bg_tile_map_mode(cpu);
     uint8_t bg_tile_data_mode_addr = bg_tile_data_mode(cpu) == 1 ? 0x8000 : 0x9000;
     uint16_t tile_index_addr = bg_tile_map_mode_addr == 0 ? 0x9800 : 0x9C00;
@@ -677,57 +679,52 @@ void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH]) {
 /* 	fb[x][1] = 0xFFFF; */
 /*     } */
 /* } */
-    for (uint8_t ly = 0; ly < 153; ly++) {
-	cpu->memory[0xFF44] = ly; // store ly in 0xFF44
-	if (ly >= 144) {
-	    continue; // vblank
+    for (uint8_t x = 0; x <= 160; x++) {
+	
+	tile_x = x / 8;
+	tile_y = ly / 8;
+	tile_pixel_x = x % 8;
+	tile_pixel_y = ly % 8;
+	
+	tile_index = tile_y * 32 + tile_x;
+	tile_id = cpu->memory[tile_index_addr + tile_index]; 
+	if (bg_tile_data_mode(cpu) == 1) {
+	    addr = 0x8000 + tile_id * 16 + tile_pixel_y * 2;
+	} 
+	else {
+	    addr = (tile_id > 127 ? 0x8800 : 0x9000) + tile_id * 16 + tile_pixel_y * 2;
 	}
-	for (uint8_t x = 0; x <= 160; x++) {
-	    
-	    tile_x = x / 8;
-	    tile_y = ly / 8;
-	    tile_pixel_x = x % 8;
-	    tile_pixel_y = ly % 8;
-
-	    tile_index = tile_y * 32 + tile_x;
-	    tile_id = cpu->memory[tile_index_addr + tile_index]; 
-	    if (bg_tile_data_mode(cpu) == 1) {
-		addr = 0x8000 + tile_id * 16 + tile_pixel_y * 2;
-	    } 
-	    else {
-		addr = (tile_id > 127 ? 0x8800 : 0x9000) + tile_id * 16 + tile_pixel_y * 2;
-	    }
-	    pixel = interleave_tile_pixel(cpu->memory[addr], cpu->memory[addr + 1], 7 - tile_pixel_x);
-	    colour_pixel = colourize_pixel(pixel);
-
-	    fb[ly][x] = colour_pixel;
-	    //   printf("ly: %d, x: %d, tile_x: %d, tile_y: %d, tile_index: %d, pixel: %d\n", ly, x, tile_x, tile_y, tile_index, pixel);
-	}
+	pixel = interleave_tile_pixel(cpu->memory[addr], cpu->memory[addr + 1], 7 - tile_pixel_x);
+	colour_pixel = colourize_pixel(pixel);
+	
+	fb[ly][x] = colour_pixel;
+	//   printf("ly: %d, x: %d, tile_x: %d, tile_y: %d, tile_index: %d, pixel: %d\n", ly, x, tile_x, tile_y, tile_index, pixel);
     }
 }
-void UpdateP1(struct CPU *cpu)
-{
-	cpu->memory[0xFF00] |= 0x0F;
-	if (!(cpu->memory[0xFF00] & 0x10))
-		cpu->memory[0xFF00] &= 0xF0 | ((cpu->keys & 0x0F) ^ 0x0F);
-	if (!(cpu->memory[0xFF00] & 0x20))
-		cpu->memory[0xFF00] &= 0xF0 | (((cpu->keys >> 4) & 0x0F) ^ 0x0F);
-	printf("update p1: %x, %x\n", cpu->memory[0xFF00], cpu->keys);
+
+void render_frame(struct CPU *cpu, struct PPU *ppu, SDL_Texture *tex, SDL_Renderer *ren) {
+    uint8_t ly = cpu->memory[0xFF44];
+    
+    if (ly >= 144) {
+	
+    } else if ((cpu->memory[0xFF40] & 0b10000000) >> 7 == 1) {
+	SDL_SetRenderDrawColor(ren, 255, 255, 255, 255);
+	SDL_RenderClear(ren);
+	
+	build_fb(cpu, ppu->fb, ly);
+	//	    SDL_UpdateTexture(tex, NULL, fb, LCD_WIDTH * sizeof(uint32_t));
+	SDL_UpdateTexture(tex, NULL, ppu->fb, LCD_WIDTH * 4);
+	SDL_RenderClear(ren);
+	SDL_RenderCopy(ren, tex, NULL, NULL);
+	SDL_RenderPresent(ren);
+    }
+    ly += 1;
+    if (ly == 154) {
+	ly = 0;
+    }
+    cpu->memory[0xFF44] = ly; // store ly in 0xFF44
 }
 
-void KeyPress(struct CPU *cpu, uint8_t key)
-{
-	cpu->keys |= 0x01 << key;
-	UpdateP1(cpu);
-	//R_IF |= CONTROL_INTR;
-}
-
-void KeyRelease(struct CPU *cpu, uint8_t key)
-{
-	cpu->keys &= (0x01 << key) ^ 0xFF;
-	UpdateP1(cpu);
-	//R_IF |= CONTROL_INTR;
-}
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
@@ -744,7 +741,6 @@ int main(int argc, char *argv[]) {
     SDL_Renderer *ren = NULL;
     SDL_Texture *tex = NULL;
     SDL_Event event;
-    uint32_t fb[LCD_HEIGHT][LCD_WIDTH];
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         printf("SDL_Init Error: %s\n", SDL_GetError());
         return 1;
@@ -773,6 +769,7 @@ int main(int argc, char *argv[]) {
     }
     
     init_cpu(&cpu);
+    init_ppu(&ppu);
     printf("%d", cpu.rom);
     
     while(running != 0) {
@@ -795,38 +792,21 @@ int main(int argc, char *argv[]) {
 		if (event.key.keysym.sym == SDLK_q) {
 		    running = 0;
 		}
-		else {
-		    for (int j = 0; j < 2*NUM_KEYS; j++)
-			if (KEYS[j] == event.key.keysym.sym)
-			    {
-				KeyPress(&cpu, j%NUM_KEYS);
-				break;
-			    }
-		}
-		    cpu.memory[0xFF00] &= 0b11110001;
-		    printf("a was pressed!\n");
-		    break;
 	    }
-	    else if (event.type == SDL_KEYUP) {
-		for (int j = 0; j < 2*NUM_KEYS; j++)
-		    if (KEYS[j] == event.key.keysym.sym)
-			{
-			    KeyRelease(&cpu, j%NUM_KEYS);
-			    break;
-			}
-	    }
+	    /* else if (event.type == SDL_KEYUP) { */
+	    /* 	for (int j = 0; j < 2*NUM_KEYS; j++) */
+	    /* 	    if (KEYS[j] == event.key.keysym.sym) */
+	    /* 		{ */
+	    /* 		    KeyRelease(&cpu, j%NUM_KEYS); */
+	    /* 		    break; */
+	    /* 		} */
+	    /* } */
 	}
 
-	if ((cpu.memory[0xFF40] & 0b10000000) >> 7 == 1) {
-	    SDL_SetRenderDrawColor(ren, 255, 255, 255, 255);
-	    SDL_RenderClear(ren);
-
-	    build_fb(&cpu, fb);
-	    //	    SDL_UpdateTexture(tex, NULL, fb, LCD_WIDTH * sizeof(uint32_t));
-	    SDL_UpdateTexture(tex, NULL, fb, LCD_WIDTH * 4);
-	    SDL_RenderClear(ren);
-	    SDL_RenderCopy(ren, tex, NULL, NULL);
-	    SDL_RenderPresent(ren);
+	render_frame(&cpu, &ppu, tex, ren);
+	cpu.clock += 1;
+	if (cpu.clock == 61) {
+	    cpu.clock = 0;
 	}
 	//SDL_Delay(2000);
 
