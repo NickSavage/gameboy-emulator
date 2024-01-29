@@ -11,7 +11,26 @@
 
 #define LCD_WIDTH 160
 #define LCD_HEIGHT 144
-
+#define NUM_KEYS    8
+uint32_t KEYS[] =
+{
+	SDLK_RIGHT, // control map one
+	SDLK_LEFT,
+	SDLK_UP,
+	SDLK_DOWN,
+	SDLK_z,
+	SDLK_x,
+	SDLK_RSHIFT,
+	SDLK_RETURN,
+	SDLK_d,     // control map two
+	SDLK_a,
+	SDLK_w,
+	SDLK_s,
+	SDLK_SPACE,
+	SDLK_BACKSPACE,
+	SDLK_LSHIFT,
+	SDLK_ESCAPE
+};
 
 static const char *regNames[] = {"b", "c", "d", "e", "h", "l", "f", "a"};
 static const char *reg_names_16[] = {"bc", "de", "hl", "sp"};
@@ -686,6 +705,29 @@ void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH]) {
 	}
     }
 }
+void UpdateP1(struct CPU *cpu)
+{
+	cpu->memory[0xFF00] |= 0x0F;
+	if (!(cpu->memory[0xFF00] & 0x10))
+		cpu->memory[0xFF00] &= 0xF0 | ((cpu->keys & 0x0F) ^ 0x0F);
+	if (!(cpu->memory[0xFF00] & 0x20))
+		cpu->memory[0xFF00] &= 0xF0 | (((cpu->keys >> 4) & 0x0F) ^ 0x0F);
+	printf("update p1: %x, %x\n", cpu->memory[0xFF00], cpu->keys);
+}
+
+void KeyPress(struct CPU *cpu, uint8_t key)
+{
+	cpu->keys |= 0x01 << key;
+	UpdateP1(cpu);
+	//R_IF |= CONTROL_INTR;
+}
+
+void KeyRelease(struct CPU *cpu, uint8_t key)
+{
+	cpu->keys &= (0x01 << key) ^ 0xFF;
+	UpdateP1(cpu);
+	//R_IF |= CONTROL_INTR;
+}
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
@@ -741,6 +783,7 @@ int main(int argc, char *argv[]) {
 	printByteAsBinary(cpu.memory[cpu.pc]);
 	putchar(' ');
 	ret = parse_opcode(&cpu, cpu.pc);
+	output_registers(&cpu);
 	if (ret == -1) {
 	    output_memory(&cpu);
 	    break;
@@ -749,17 +792,28 @@ int main(int argc, char *argv[]) {
 	cpu.pc++;
 	while (SDL_PollEvent(&event)) {
 	    if (event.type == SDL_KEYDOWN) {
-		switch(event.key.keysym.sym) {
-		case (SDLK_q):
+		if (event.key.keysym.sym == SDLK_q) {
 		    running = 0;
-		    break;
-		case (SDLK_a):
-		    cpu.memory[0xFF00] = 0b00011110;
+		}
+		else {
+		    for (int j = 0; j < 2*NUM_KEYS; j++)
+			if (KEYS[j] == event.key.keysym.sym)
+			    {
+				KeyPress(&cpu, j%NUM_KEYS);
+				break;
+			    }
+		}
+		    cpu.memory[0xFF00] &= 0b11110001;
 		    printf("a was pressed!\n");
 		    break;
-		}
-	    } else if (event.type == SDL_KEYUP) {
-		cpu.memory[0xFF00] = 0b00001111;
+	    }
+	    else if (event.type == SDL_KEYUP) {
+		for (int j = 0; j < 2*NUM_KEYS; j++)
+		    if (KEYS[j] == event.key.keysym.sym)
+			{
+			    KeyRelease(&cpu, j%NUM_KEYS);
+			    break;
+			}
 	    }
 	}
 

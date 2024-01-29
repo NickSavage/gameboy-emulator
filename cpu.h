@@ -28,6 +28,8 @@ struct CPU {
     uint16_t pc;
     uint16_t sp;
     uint16_t ime; // interrupts register
+
+    uint8_t keys; // currently pressed keys
 };
 
 enum ppu_mode {
