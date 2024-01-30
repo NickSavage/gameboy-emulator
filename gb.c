@@ -189,6 +189,16 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	printf(" ld %s, $%x", regNames[reg], second);
 	load_reg(cpu, reg, second);
 	ret = 1;
+
+	cpu->clock += 1;
+	break;
+    case (0x08):
+	// ld (nn), SP
+	printf(" ld [%x], sp", (second << 8) + third);
+	cpu->memory[second] = cpu->sp >> 8; // low
+	cpu->memory[third] = cpu->sp & 0x0F; // high
+	ret = 2;
+	cpu->clock += 4;
 	break;
 	
     case (0xc0): case(0xd0): case (0xc8): case(0xd8):
@@ -197,6 +207,9 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	printf(" ret %d", cc);
 	if (cc == COND_Z && get_z_flag(cpu) == 1) {
 	    ret_function(cpu);
+	    cpu->clock += 4;
+	} else {
+	    cpu->clock += 1;
 	}
 	break;
     case(0xc9):
@@ -204,6 +217,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 
 	printf(" ret");
 	ret_function(cpu);
+	cpu->clock += 3;
 	//	cpu->pc -= 1;
 
 	break;
@@ -220,6 +234,8 @@ int parse_opcode(struct CPU *cpu, int pc) {
 
 	cpu->regs[REG_H] = (total >> 8) & 0xFF;
 	cpu->regs[REG_L] = total & 0xFF;
+
+	cpu->clock += 1;
 	
 	break;
     case(0xcb):
@@ -241,26 +257,31 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	output_memory(cpu);
 	
 	cpu->pc = addr - 1;
+	cpu->clock += 5;
 	break;
     case(0xe2):
 	addr = 0xFF00 + cpu->regs[REG_C];
 	printf(" ldh [c], a - [$%x]", addr);
 	cpu->memory[addr] = cpu->regs[REG_A];
+	cpu->clock += 1;
 	break;
     case(0xe6):
 	printf("and $%x", second);
 	and(cpu, second);
 	ret = 1;
+	cpu->clock += 1;
 	break;
     case(0xf6):
 	// or a, n
 	printf("or a, $%x", second);
 	or_8(cpu, second);
 	ret = 1;
+	cpu->clock += 1;
 	break;
 	
     case(0xfb):
 	printf(" ei");
+	cpu->clock += 2;
 	break;
     default:
 	found = 0;
@@ -279,6 +300,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	uint16_t addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
 	cpu->memory[addr] = second;
 
+	cpu->clock += 2;
 	ret = 1;
     }
     else if ((first & 0b11111111) == 0b11111010 ) {
@@ -291,6 +313,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	printf(" ld a, [%x]", addr);
 	load_reg(cpu, REG_A, cpu->memory[addr]);
 
+	cpu->clock += 3;
 	ret = 2;
     }
     else if ((first & 0b11111111) == 0b11101010) {
@@ -303,6 +326,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	printf("%d", addr);
 	printf(" ld [%x], a", addr);
 	set_mem(cpu, addr, cpu->regs[REG_A]);
+	cpu->clock += 3;
 	ret = 2;
     }
     else if ((first & 0b11000111) == 0b01000110) {
@@ -311,6 +335,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	printf(" -- %d --", addr);
 	printf(" ld a, [HL]");
 	load_reg(cpu, REG_A, cpu->memory[addr]);
+	cpu->clock += 1;
     }
     else if ((first & 0b11111000) == 0b01110000) {
 	// ld (HL), r
@@ -321,6 +346,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	printf(" ld [HL], %s", regNames[src]);
 
 	cpu->memory[addr] = cpu->regs[src];
+	cpu->clock += 1;
     }
     else if ((first & 0b11000000) == 0b01000000) {
 	// ld r, r
@@ -337,6 +363,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	
 	cpu->memory[addr] = second;
 	ret = 1;
+	cpu->clock += 3;
     }
     else if ((first & 0b11001111) == 0b00000001) {
 	// LD rr, nn
@@ -353,6 +380,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	printf("ld %s, %x", reg_names_16[reg], (high << 8) + low);
 	load_reg_16(cpu, reg, low, high);
 	ret = 2;
+	cpu->clock += 2;
     }
     else if ((first & 0b11111111) == 0b00001010) {
 	// ld a, (BC)
@@ -362,6 +390,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	printf(" ld a, [BC]");
 	cpu->regs[REG_A] = cpu->memory[addr];
 	ret = 1;
+	cpu->clock += 1;
     }
     else if ((first & 0b11111111) == 0b00011010) {
 	// ld a, (DE)
@@ -370,6 +399,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	
 	printf(" ld a, [DE]");
 	cpu->regs[REG_A] = cpu->memory[addr];
+	cpu->clock += 1;
     }
     else if (first == 0b00010010) {
 	// ld [DE], a
@@ -377,6 +407,8 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	
 	printf(" ld [DE], a");
 	cpu->memory[addr] = cpu->regs[REG_A];
+
+	cpu->clock += 1;
     }
     else if (first == 0b11110000) {
 	// ldh a, 0xFF00 + n
@@ -384,6 +416,8 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	printf(" ldh a, [%x]", 0xFF00 + second);
 	cpu->regs[REG_A] = cpu->memory[0xFF00+second];
 	ret = 1;
+
+	cpu->clock += 2;
     }
     else if (first == 0b11100000) {
 	// ldh 
@@ -391,6 +425,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	cpu->memory[0xFF00+second] = cpu->regs[REG_A];
 	ret = 1;
 	
+	cpu->clock += 2;
     }
     else if ((first & 0b11111000) == 0b10000000) {
 	// add r
@@ -407,21 +442,25 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	add(cpu, REG_A, second);
 
 	ret = 1;
+	cpu->clock += 1;
     }
     else if (first == 0x09) {
 	// add hl, de
 	printf(" add hl, bc");
 	add_16(cpu, 2, (cpu->regs[REG_B] << 8) + cpu->regs[REG_C]);
+	cpu->clock += 1;
     }
     else if (first == 0x19) {
 	// add hl, de
 	printf(" add hl, de");
 	add_16(cpu, 2, (cpu->regs[REG_D] << 8) + cpu->regs[REG_E]);
+	cpu->clock += 1;
     }
     else if (first == 0x29) {
 	// add hl, de
 	printf(" add hl, hl");
 	add_16(cpu, 2, (cpu->regs[REG_H] << 8) + cpu->regs[REG_L]);
+	cpu->clock += 1;
     }
     else if ((first & 0b11111000) == 0b10010000) {
 	// sub r
@@ -468,6 +507,8 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	printf(" sub a, %d", second);
 	sub(cpu, second);
 	ret = 1;
+
+	cpu->clock += 1;
     }
     else if ((first & 0b11111111) == 0b00100010) {
 	// ld (HL+), a
@@ -480,6 +521,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	cpu->regs[REG_H] = addr >> 8;
 	cpu->regs[REG_L] = addr & 0xFF;
 	
+	cpu->clock += 1;
     }
     else if (first == 0x13) {
 	printf("inc de");
@@ -492,6 +534,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 
 	printf("; %x", (cpu->regs[REG_D] << 8) + cpu->regs[REG_E]);
 
+	cpu->clock += 1;
     }
     else if (first == 0b00100011) {
 	uint8_t reg = (first >> 4) & 0b0011;
@@ -503,6 +546,8 @@ int parse_opcode(struct CPU *cpu, int pc) {
 
 	cpu->regs[REG_H] = high;
 	cpu->regs[REG_L] = low;
+
+	cpu->clock += 1;
     }
     else if ((first & 0b11000111) == 0b00000101) {
 	// dec r
@@ -520,12 +565,16 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	cpu->regs[REG_B] = high;
 	cpu->regs[REG_C] = low;
 	printf("; %x", (cpu->regs[REG_B] << 8) + cpu->regs[REG_C]);
+
+	cpu->clock += 1;
     }
     else if ((first & 0b11111111) == 0b11000011) {
 	// jp
 	int addr = (third << 8) + second;
 	printf(" JP %x", addr);
 	cpu->pc = addr - 1;
+
+	cpu->clock += 3;
     }
     else if ((first & 0b11100111) == 0b11000010) {
 	// jp cc, n
@@ -540,10 +589,14 @@ int parse_opcode(struct CPU *cpu, int pc) {
 
 	if (cc == COND_NC && !(check_flag_c(cpu) == 1)) {
 	    cpu->pc = addr - 1;
+
+	    cpu->clock += 3;
 	} else if (cc == COND_C && (check_flag_c(cpu) == 1)) {
 	    cpu->pc = addr - 1;
+	    cpu->clock += 3;
 	} else {
 	    
+	    cpu->clock += 2;
 	    ret = 2;
 	}
 	
@@ -557,6 +610,8 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	    cpu->pc += (int8_t)second;
 	}
 	ret = 1;
+
+	cpu->clock += 2;
     }
     else if ((first & 0b11100111) == 0b00100000) {
 	// jr cc, nn
@@ -569,15 +624,22 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	ret = 1;
 	if (cc == COND_C && (check_flag_c(cpu) == 1)) {
 	    cpu->pc += (int8_t)second;
+
+	    cpu->clock += 2;
 	} else if (cc == COND_Z && (get_z_flag(cpu) == 1)) {
 	    cpu->pc += (int8_t)second;
+
+	    cpu->clock += 2;
 	} else if (cc == COND_NZ && (get_z_flag(cpu) == 0)) {
 	    printf("does htis get triggered?");
 	    cpu->pc += (int8_t)second;
+	    cpu->clock += 2;
 	} else if (cc == COND_NC && (get_c_flag(cpu) == 0)) {
 	    cpu->pc += (int8_t)second;
+	    cpu->clock += 2;
 	} else {
 	    ret = 1;
+	    cpu->clock += 1;
 	}
 	
 	putchar('\n');
@@ -596,21 +658,26 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	int reg = (first & 0b00110000) >> 4;
 	printf(" push %s", reg_names_16[reg]);
 	push(cpu, reg);
+
+	cpu->clock += 3;
     }
     else if (first == 0xC1) {
 	// pop rr
 	printf(" pop bc");
 	pop(cpu, 0);
+	cpu->clock += 2;
     }
     else if (first == 0xD1) {
 	// pop rr
 	printf(" pop de");
 	pop(cpu, 1);
+	cpu->clock += 2;
     }
     else if (first == 0xE1) {
 	// pop rr
 	printf(" pop hl");
 	pop(cpu, 2);
+	cpu->clock += 2;
     }
     else if ((first & 0b11111111) == 0b11110011) {
 	// disable interrupts
@@ -660,7 +727,7 @@ uint32_t colourize_pixel(int input) {
 }
 
 
-void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH], uint8_t ly) {
+void build_fb(struct CPU *cpu, struct PPU *ppu, uint8_t ly) {
     uint8_t bg_tile_map_mode_addr = bg_tile_map_mode(cpu);
     uint8_t bg_tile_data_mode_addr = bg_tile_data_mode(cpu) == 1 ? 0x8000 : 0x9000;
     uint16_t tile_index_addr = bg_tile_map_mode_addr == 0 ? 0x9800 : 0x9C00;
@@ -697,7 +764,7 @@ void build_fb(struct CPU *cpu, uint32_t (*fb)[LCD_WIDTH], uint8_t ly) {
 	pixel = interleave_tile_pixel(cpu->memory[addr], cpu->memory[addr + 1], 7 - tile_pixel_x);
 	colour_pixel = colourize_pixel(pixel);
 	
-	fb[ly][x] = colour_pixel;
+	ppu->fb[ly][x] = colour_pixel;
 	//   printf("ly: %d, x: %d, tile_x: %d, tile_y: %d, tile_index: %d, pixel: %d\n", ly, x, tile_x, tile_y, tile_index, pixel);
     }
 }
@@ -711,12 +778,13 @@ void render_frame(struct CPU *cpu, struct PPU *ppu, SDL_Texture *tex, SDL_Render
 	SDL_SetRenderDrawColor(ren, 255, 255, 255, 255);
 	SDL_RenderClear(ren);
 	
-	build_fb(cpu, ppu->fb, ly);
+	build_fb(cpu, ppu, ly);
 	//	    SDL_UpdateTexture(tex, NULL, fb, LCD_WIDTH * sizeof(uint32_t));
 	SDL_UpdateTexture(tex, NULL, ppu->fb, LCD_WIDTH * 4);
 	SDL_RenderClear(ren);
 	SDL_RenderCopy(ren, tex, NULL, NULL);
 	SDL_RenderPresent(ren);
+	SDL_Delay(20);
     }
     ly += 1;
     if (ly == 154) {
@@ -803,9 +871,9 @@ int main(int argc, char *argv[]) {
 	    /* } */
 	}
 
-	render_frame(&cpu, &ppu, tex, ren);
 	cpu.clock += 1;
-	if (cpu.clock == 61) {
+	if (cpu.clock >= 114) {
+	    render_frame(&cpu, &ppu, tex, ren);
 	    cpu.clock = 0;
 	}
 	//SDL_Delay(2000);

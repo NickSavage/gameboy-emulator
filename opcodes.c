@@ -179,7 +179,7 @@ void sub(struct CPU *cpu, unsigned char amount) {
 
 void compare(struct CPU *cpu, unsigned char amount) {
     int result = cpu->regs[REG_A] - amount;
-
+g
     if (result == 0) {
 	cpu->regs[REG_F] |= 1 << FLAG_Z;
     } else {
