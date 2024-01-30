@@ -175,13 +175,23 @@ int parse_opcode(struct CPU *cpu, int pc) {
     case(0x00):
 	printf(" noop");
 	break;
-    case(0x04): case(0x14): case(0x24): case(0x34): case(0x0c): case(0x1c):case(0x2c): case(0x3c):
+    case(0x04): case(0x14): case(0x24): case(0x0c): case(0x1c):case(0x2c): case(0x3c):
 	// inc r
 	reg = (first & 0b00111000) >> 3;
 	printf(" inc %s", regNames[reg]);
 	add(cpu, reg, 1);
 
 	break;
+    case (0x34):
+	// inc [hl]
+	printf(" inc [hl]");
+	addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
+	cpu->memory[addr] +=1;
+
+	cpu->clock += 2;
+	break;
+	
+	
     case(0x06): case(0x16): case(0x26): case(0x0e): case(0x1e): case(0x2e): case(0x3e): case(0x4e):
 	// ld r, n
 	printByteAsBinary(second);
@@ -429,7 +439,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	    // oam dma transfer
 
 	    for (int i = 0; i < 160; i++) {
-		printf("oam %x", (cpu->regs[REG_A] << 8) + i);
+		printf("oam %x\n", (cpu->regs[REG_A] << 8) + i);
 		cpu->memory[0xFE00 + i] = cpu->memory[(cpu->regs[REG_A] << 8) + i];
 	    }
 	}
