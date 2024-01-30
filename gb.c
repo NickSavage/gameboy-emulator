@@ -424,6 +424,15 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	printf(" ldh [%x], a", 0xFF00 + second);
 	cpu->memory[0xFF00+second] = cpu->regs[REG_A];
 	ret = 1;
+
+	if (0xFF00 + second == 0xFF46) {
+	    // oam dma transfer
+
+	    for (int i = 0; i < 160; i++) {
+		printf("oam %x", (cpu->regs[REG_A] << 8) + i);
+		cpu->memory[0xFE00 + i] = cpu->memory[(cpu->regs[REG_A] << 8) + i];
+	    }
+	}
 	
 	cpu->clock += 2;
     }
@@ -769,6 +778,52 @@ void build_fb(struct CPU *cpu, struct PPU *ppu, uint8_t ly) {
     }
 }
 
+void render_sprites(struct CPU *cpu, struct PPU *ppu, uint8_t ly) {
+    uint8_t tile_y_pos;
+    uint8_t tile_x_pos;
+    uint8_t tile_number;
+    uint8_t sprite_flags;
+    
+    uint8_t low;
+    uint8_t high;
+    
+    uint16_t addr;
+    uint8_t pixel;
+    uint8_t colour_pixel;
+
+    for (uint8_t sprite_number = 0; sprite_number < 40; sprite_number++) {
+	tile_y_pos = cpu->memory[0xFE00 + sprite_number * 4];
+	tile_x_pos = cpu->memory[0xFE00 + sprite_number * 4 + 1];
+	tile_number = cpu->memory[0xFE00 + sprite_number * 4 + 2];
+	sprite_flags = cpu->memory[0xFE00 + sprite_number * 4 + 3];
+
+	if (tile_y_pos < 16 || tile_y_pos > 160) {
+	    // not on screen
+	    continue;
+	}
+	if (tile_x_pos < 16 || tile_x_pos > 160) {
+	    // not on screen
+	    continue;
+	}
+	if (ly == tile_y_pos) {
+	    addr = cpu->memory[0x8000 + tile_number * 16];
+
+	    for (int x = 0; x < 8; x++) {
+		pixel = interleave_tile_pixel(cpu->memory[addr], cpu->memory[addr + 1], 7 - x);
+		
+		colour_pixel = colourize_pixel(pixel);
+		
+		ppu->fb[ly][tile_x_pos + x] = colour_pixel;
+	    }
+	    
+	}
+    }
+    for (uint8_t x = 0; x <= 160; x++) {
+	
+    }
+    
+}
+
 void render_frame(struct CPU *cpu, struct PPU *ppu, SDL_Texture *tex, SDL_Renderer *ren) {
     uint8_t ly = cpu->memory[0xFF44];
     
@@ -779,6 +834,7 @@ void render_frame(struct CPU *cpu, struct PPU *ppu, SDL_Texture *tex, SDL_Render
 	SDL_RenderClear(ren);
 	
 	build_fb(cpu, ppu, ly);
+	render_sprites(cpu, ppu, ly);
 	//	    SDL_UpdateTexture(tex, NULL, fb, LCD_WIDTH * sizeof(uint32_t));
 	SDL_UpdateTexture(tex, NULL, ppu->fb, LCD_WIDTH * 4);
 	SDL_RenderClear(ren);
