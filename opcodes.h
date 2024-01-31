@@ -4,6 +4,8 @@
 
 void printByteAsBinary(unsigned char byte);
 
+void request_vblank_int(struct CPU *cpu);
+
 void set_z_flag(struct CPU *cpu, uint8_t reg);
 void set_n_flag(struct CPU *cpu, int bit);
 void set_c_flag(struct CPU *cpu, int bit);

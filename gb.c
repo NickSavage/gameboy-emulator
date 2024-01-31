@@ -210,6 +210,12 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	ret = 2;
 	cpu->clock += 4;
 	break;
+
+    case (0x90):case (0x91):case (0x92):case (0x93):case (0x94):case (0x95):case (0x96):case (0x97):
+	reg = (first & 0b00000111);
+	printf(" sub a, %s", regNames[reg]);
+	sub(cpu, cpu->regs[reg]);
+	break;
 	
     case (0xc0): case(0xd0): case (0xc8): case(0xd8):
 	// ret cc
@@ -454,7 +460,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
     }
     else if ((first & 0b11111000) == 0b10000000) {
 	// add r
-	int reg = (first & 0b00111000) >> 3;
+	int reg = (first & 0b00000111);
 	printf(" add %s", regNames[reg]);
 	
 	add(cpu, REG_A, cpu->regs[reg]);
@@ -487,14 +493,14 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	add_16(cpu, 2, (cpu->regs[REG_H] << 8) + cpu->regs[REG_L]);
 	cpu->clock += 1;
     }
-    else if ((first & 0b11111000) == 0b10010000) {
-	// sub r
-	int reg = (first & 0b00111000) >> 3;
- 	printf(" sub a, %s", regNames[reg]);
-	sub(cpu, cpu->regs[reg]);
+    /* else if ((first & 0b11111000) == 0b10010000) { */
+    /* 	// sub r */
+    /* 	int reg = (first & 0b00111000) >> 3; */
+    /* 	printf(" sub a, %s", regNames[reg]); */
+    /* 	sub(cpu, cpu->regs[reg]); */
 	
-	ret = 1;
-    }
+    /* 	ret = 1; */
+    /* } */
     else if ((first & 0b11111111) == 0b11111110) {
 	//cp n
 	printByteAsBinary(second);
@@ -803,6 +809,8 @@ void build_fb(struct CPU *cpu, struct PPU *ppu, uint8_t ly) {
 void render_sprites(struct CPU *cpu, struct PPU *ppu, uint8_t ly) {
     uint8_t tile_y_pos;
     uint8_t tile_x_pos;
+    uint8_t tile_y_diff;
+    uint8_t tile_x_diff;
     uint8_t tile_number;
     uint8_t sprite_flags;
     
@@ -816,6 +824,7 @@ void render_sprites(struct CPU *cpu, struct PPU *ppu, uint8_t ly) {
     for (uint8_t sprite_number = 0; sprite_number < 40; sprite_number++) {
 	tile_y_pos = cpu->memory[0xFE00 + sprite_number * 4];
 	tile_x_pos = cpu->memory[0xFE00 + sprite_number * 4 + 1];
+	tile_y_diff = ly - tile_y_pos + 16;
 	tile_number = cpu->memory[0xFE00 + sprite_number * 4 + 2];
 	sprite_flags = cpu->memory[0xFE00 + sprite_number * 4 + 3];
 
@@ -823,18 +832,18 @@ void render_sprites(struct CPU *cpu, struct PPU *ppu, uint8_t ly) {
 	    // not on screen
 	    continue;
 	}
-	if (tile_x_pos < 16 || tile_x_pos > 160) {
+	if (tile_x_pos < 8 || tile_x_pos > 160) {
 	    // not on screen
 	    continue;
 	}
-	if (ly == tile_y_pos) {
-	    addr = cpu->memory[0x8000 + tile_number * 16];
+	printf("sprite %d\n", sprite_number);
+	if (tile_y_diff > 0 && tile_y_diff < 8) {
+	    addr = cpu->memory[0x8000 + tile_number * 16 + tile_y_diff * 2];
+	    printf("%x\n", addr);
 
 	    for (int x = 0; x < 8; x++) {
 		pixel = interleave_tile_pixel(cpu->memory[addr], cpu->memory[addr + 1], 7 - x);
-		
 		colour_pixel = colourize_pixel(pixel);
-		
 		ppu->fb[ly][tile_x_pos + x] = colour_pixel;
 	    }
 	    
@@ -881,7 +890,7 @@ void handle_interrupts(struct CPU *cpu) {
 	    call(cpu, 0x00, 0x40);
 	}
     }
-    clear_vblank_int(cpu);
+    cpu->memory[0xffff] = 0;
 }
 
 int main(int argc, char *argv[]) {

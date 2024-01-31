@@ -9,6 +9,9 @@ void printByteAsBinary(unsigned char byte) {
     }
 }
 
+void request_vblank_int(struct CPU *cpu) {
+    cpu->memory[0xffff] |= 1 << 0;
+}
 
 void set_z_flag(struct CPU *cpu, uint8_t reg) {
     if (cpu->regs[reg] == 0) {
@@ -237,7 +240,12 @@ void push(struct CPU *cpu, uint8_t reg) {
     } else if (reg == 2) {
 	cpu->memory[cpu->sp - 1] = cpu->regs[REG_H];
 	cpu->memory[cpu->sp - 2] = cpu->regs[REG_L];
-    } else {
+    } else if (reg == 3) {
+	cpu->memory[cpu->sp - 1] = cpu->regs[REG_A];
+	cpu->memory[cpu->sp - 2] = cpu->regs[REG_F];
+    }
+
+    else {
 	printf("something is out of bounds");
     }
     cpu->sp -= 2;
@@ -252,7 +260,12 @@ void pop(struct CPU *cpu, uint8_t reg) {
     } else if (reg == 2) {
 	cpu->regs[REG_L] = cpu->memory[cpu->sp];
 	cpu->regs[REG_H] = cpu->memory[cpu->sp + 1];
-    } else {
+    } else if (reg == 3) {
+	cpu->regs[REG_F] = cpu->memory[cpu->sp];
+	cpu->regs[REG_A] = cpu->memory[cpu->sp + 1];
+    }
+
+    else {
 	printf("something is out of bounds");
     }
     cpu->sp += 2;
