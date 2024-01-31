@@ -269,6 +269,11 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	cpu->pc = addr - 1;
 	cpu->clock += 5;
 	break;
+    case (0xd9):
+	// reti
+	ret_function(cpu);
+	cpu->ime = 1;
+	break;
     case(0xe2):
 	addr = 0xFF00 + cpu->regs[REG_C];
 	printf(" ldh [c], a - [$%x]", addr);
@@ -291,6 +296,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	
     case(0xfb):
 	printf(" ei");
+	cpu->ime = 1;
 	cpu->clock += 2;
 	break;
     default:
@@ -698,6 +704,12 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	pop(cpu, 2);
 	cpu->clock += 2;
     }
+    else if (first == 0xF1) {
+	// pop rr
+	printf(" pop af");
+	pop(cpu, 3);
+	cpu->clock += 2;
+    }
     else if ((first & 0b11111111) == 0b11110011) {
 	// disable interrupts
 	cpu->ime = 0;
@@ -837,7 +849,9 @@ void render_sprites(struct CPU *cpu, struct PPU *ppu, uint8_t ly) {
 void render_frame(struct CPU *cpu, struct PPU *ppu, SDL_Texture *tex, SDL_Renderer *ren) {
     uint8_t ly = cpu->memory[0xFF44];
     
-    if (ly >= 144) {
+    if (ly == 144) {
+	request_vblank_int(cpu);
+    } else if (ly > 144) {
 	
     } else if ((cpu->memory[0xFF40] & 0b10000000) >> 7 == 1) {
 	SDL_SetRenderDrawColor(ren, 255, 255, 255, 255);
@@ -850,7 +864,7 @@ void render_frame(struct CPU *cpu, struct PPU *ppu, SDL_Texture *tex, SDL_Render
 	SDL_RenderClear(ren);
 	SDL_RenderCopy(ren, tex, NULL, NULL);
 	SDL_RenderPresent(ren);
-	SDL_Delay(20);
+	//	SDL_Delay(20);
     }
     ly += 1;
     if (ly == 154) {
@@ -859,6 +873,16 @@ void render_frame(struct CPU *cpu, struct PPU *ppu, SDL_Texture *tex, SDL_Render
     cpu->memory[0xFF44] = ly; // store ly in 0xFF44
 }
 
+void handle_interrupts(struct CPU *cpu) {
+    if (cpu->ime == 1) {
+	if ((cpu->memory[0xffff] & 0x01) == 1) {
+	    // vblank
+	    printf("vblank int");
+	    call(cpu, 0x00, 0x40);
+	}
+    }
+    clear_vblank_int(cpu);
+}
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
@@ -943,6 +967,7 @@ int main(int argc, char *argv[]) {
 	    cpu.clock = 0;
 	}
 	//SDL_Delay(2000);
+	handle_interrupts(&cpu);
 
     }
     putchar('\n');
