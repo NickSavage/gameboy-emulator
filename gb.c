@@ -809,7 +809,7 @@ void build_fb(struct CPU *cpu, struct PPU *ppu, uint8_t ly) {
 void render_sprites(struct CPU *cpu, struct PPU *ppu, uint8_t ly) {
     uint8_t tile_y_pos;
     uint8_t tile_x_pos;
-    uint8_t tile_y_diff;
+    int8_t tile_y_diff;
     uint8_t tile_number;
     uint8_t sprite_flags;
     
@@ -823,7 +823,7 @@ void render_sprites(struct CPU *cpu, struct PPU *ppu, uint8_t ly) {
     for (uint8_t sprite_number = 0; sprite_number < 40; sprite_number++) {
 	tile_y_pos = cpu->memory[0xFE00 + sprite_number * 4];
 	tile_x_pos = cpu->memory[0xFE00 + sprite_number * 4 + 1];
-	tile_y_diff = ly - tile_y_pos + 16;
+	tile_y_diff = tile_y_pos - ly - 16;
 	tile_number = cpu->memory[0xFE00 + sprite_number * 4 + 2];
 	sprite_flags = cpu->memory[0xFE00 + sprite_number * 4 + 3];
 
@@ -835,9 +835,9 @@ void render_sprites(struct CPU *cpu, struct PPU *ppu, uint8_t ly) {
 	    // not on screen
 	    continue;
 	}
-	if (ly < tile_y_pos && ly + 8 >= tile_y_pos) {
-	    printf("sprite %d\n", sprite_number);
-	    addr = cpu->memory[0x8000 + tile_number * 16 + tile_y_diff * 2];
+	if (ly + 8 < tile_y_pos && ly + 16 >= tile_y_pos) {
+	    printf("sprite %d asd- ", sprite_number);
+	    addr = 0x8000 + tile_number * 16 + tile_y_diff * -2;
 	    printf("%d, %d, %d, %d, %x, %x\n", ly, tile_y_pos, tile_x_pos, tile_y_diff, tile_number, addr);
 
 	    for (int x = 0; x < 8; x++) {
@@ -872,7 +872,7 @@ void render_frame(struct CPU *cpu, struct PPU *ppu, SDL_Texture *tex, SDL_Render
 	SDL_RenderClear(ren);
 	SDL_RenderCopy(ren, tex, NULL, NULL);
 	SDL_RenderPresent(ren);
-	SDL_Delay(20);
+	//	SDL_Delay(20);
     }
     ly += 1;
     if (ly == 154) {
