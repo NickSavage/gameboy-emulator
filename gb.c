@@ -270,7 +270,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	call(cpu, third, second);
 
 	printf("%x, %x, %x \n", cpu->sp, cpu->memory[cpu->sp + 1], cpu->memory[cpu-> sp]);
-	output_memory(cpu);
+	//	output_memory(cpu);
 	
 	cpu->pc = addr - 1;
 	cpu->clock += 5;
@@ -304,6 +304,12 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	printf(" ei");
 	cpu->ime = 1;
 	cpu->clock += 2;
+	break;
+    case (0xff):
+	// rst 
+	addr = (first & 00111000) >> 3;
+	printf( "rst %x", addr);
+	call(cpu, 0, addr);
 	break;
     default:
 	found = 0;
@@ -451,7 +457,6 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	    // oam dma transfer
 
 	    for (int i = 0; i < 160; i++) {
-		printf("oam %x\n", (cpu->regs[REG_A] << 8) + i);
 		cpu->memory[0xFE00 + i] = cpu->memory[(cpu->regs[REG_A] << 8) + i];
 	    }
 	}
@@ -509,7 +514,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
 
 	printf("- %x %x", cpu->regs[REG_A], second);
 	compare(cpu, second);
-	output_registers(cpu);
+	//	output_registers(cpu);
 	ret = 1;
     }
     else if ((first & 0b11111000) == 0b10100000) {
@@ -836,14 +841,14 @@ void render_sprites(struct CPU *cpu, struct PPU *ppu, uint8_t ly) {
 	    continue;
 	}
 	if (ly + 8 < tile_y_pos && ly + 16 >= tile_y_pos) {
-	    printf("sprite %d asd- ", sprite_number);
+	    /* printf("sprite %d asd- ", sprite_number); */
 	    addr = 0x8000 + tile_number * 16 + tile_y_diff * -2;
-	    printf("%d, %d, %d, %d, %x, %x\n", ly, tile_y_pos, tile_x_pos, tile_y_diff, tile_number, addr);
+	    /* printf("%d, %d, %d, %d, %x, %x\n", ly, tile_y_pos, tile_x_pos, tile_y_diff, tile_number, addr); */
 
 	    for (int x = 0; x < 8; x++) {
 		pixel = interleave_tile_pixel(cpu->memory[addr], cpu->memory[addr + 1], 7 - x);
 		colour_pixel = colourize_pixel(pixel);
-		ppu->fb[ly][tile_x_pos + x] = colour_pixel;
+		ppu->fb[ly][tile_x_pos - 8 + x] = colour_pixel;
 	    }
 	    
 	}
@@ -867,7 +872,6 @@ void render_frame(struct CPU *cpu, struct PPU *ppu, SDL_Texture *tex, SDL_Render
 	
 	build_fb(cpu, ppu, ly);
 	render_sprites(cpu, ppu, ly);
-	//	    SDL_UpdateTexture(tex, NULL, fb, LCD_WIDTH * sizeof(uint32_t));
 	SDL_UpdateTexture(tex, NULL, ppu->fb, LCD_WIDTH * 4);
 	SDL_RenderClear(ren);
 	SDL_RenderCopy(ren, tex, NULL, NULL);
@@ -939,16 +943,16 @@ int main(int argc, char *argv[]) {
     printf("%d", cpu.rom);
     
     while(running != 0) {
-	if (cpu.pc == 0) {
-	    printf("asdf");
-	}
+	/* if (cpu.pc == 0) { */
+	/*     printf("asdf"); */
+	/* } */
 	printf("%x - $%x - ", cpu.pc, cpu.memory[cpu.pc]);
 	printByteAsBinary(cpu.memory[cpu.pc]);
 	putchar(' ');
 	ret = parse_opcode(&cpu, cpu.pc);
-	output_registers(&cpu);
+	//	output_registers(&cpu);
 	if (ret == -1) {
-	    output_memory(&cpu);
+	    // output_memory(&cpu);
 	    break;
 	}
 	cpu.pc += ret;
@@ -979,8 +983,8 @@ int main(int argc, char *argv[]) {
 
     }
     putchar('\n');
-    output_registers(&cpu);
-    output_memory(&cpu);
+    /* output_registers(&cpu); */
+    /* output_memory(&cpu); */
     // Free the memory
     free(data);
     
