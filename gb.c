@@ -166,6 +166,7 @@ int parse_opcode(struct CPU *cpu, int pc) {
     unsigned char third = cpu->memory[pc + 2];
     uint16_t addr;
     uint8_t reg;
+    uint8_t n;
 
     int found = 1;
     int ret = 0;
@@ -442,7 +443,6 @@ int parse_opcode(struct CPU *cpu, int pc) {
     }
     else if (first == 0b11110000) {
 	// ldh a, 0xFF00 + n
-
 	printf(" ldh a, [%x]", 0xFF00 + second);
 	cpu->regs[REG_A] = cpu->memory[0xFF00+second];
 	ret = 1;
@@ -452,9 +452,16 @@ int parse_opcode(struct CPU *cpu, int pc) {
     else if (first == 0b11100000) {
 	// ldh 
 	printf(" ldh [%x], a", 0xFF00 + second);
-	cpu->memory[0xFF00+second] = cpu->regs[REG_A];
 	ret = 1;
 
+	if (0xFF00 + second == 0xff00) {
+	    // read only first nibble for 0xFF00
+	    printf("asdsad");
+	    cpu->memory[0xFF00] = (cpu->regs[REG_A] & 0b11110000) + (cpu->memory[0xFF00] & 0b00001111);
+	} else {
+	    
+	    cpu->memory[0xFF00+second] = cpu->regs[REG_A];
+	}
 	if (0xFF00 + second == 0xFF46) {
 	    // oam dma transfer
 
@@ -899,11 +906,16 @@ void handle_interrupts(struct CPU *cpu) {
 }
 void UpdateP1(struct CPU *cpu)
 {
-	cpu->memory[0xFF00] |= 0x0F;
-	if (!(cpu->memory[0xFF00] & 0x10))
-		cpu->memory[0xFF00] &= 0xF0 | ((cpu->keys & 0x0F) ^ 0x0F);
-	if (!(cpu->memory[0xFF00] & 0x20))
-		cpu->memory[0xFF00] &= 0xF0 | (((cpu->keys >> 4) & 0x0F) ^ 0x0F);
+    printf("before %x\n", cpu->memory[0xFF00]);
+    cpu->memory[0xFF00] |= 0x0F;
+    if (!(cpu->memory[0xFF00] & 0x10))
+	cpu->memory[0xFF00] &= 0xF0 | ((cpu->keys & 0x0F) ^ 0x0F);
+    if (!(cpu->memory[0xFF00] & 0x20))
+	cpu->memory[0xFF00] &= 0xF0 | (((cpu->keys >> 4) & 0x0F) ^ 0x0F);
+    if (cpu->keys == 0) {
+	cpu->memory[0xFF00] = cpu->memory[0xFF00] & 0b11110000;
+    }
+    printf("after %x\n", cpu->memory[0xFF00]);
 }
 
 void KeyPress(struct CPU *cpu, uint8_t key)
@@ -915,7 +927,10 @@ void KeyPress(struct CPU *cpu, uint8_t key)
 
 void KeyRelease(struct CPU *cpu, uint8_t key)
 {
-    cpu->keys &= (0x01 << key) ^ 0xFF;
+    printf("cpu keys, %x - ", cpu->keys);
+    //    cpu->keys = cpu->keys & 0b11110000;
+    cpu->keys = 0;
+    printf("cpu keys, %x\n", cpu->keys);
     UpdateP1(cpu);
     //R_IF |= CONTROL_INTR;
 }
@@ -969,11 +984,14 @@ int main(int argc, char *argv[]) {
 	/* if (cpu.pc == 0) { */
 	/*     printf("asdf"); */
 	/* } */
+	printf("0xFF00 ");
+	printByteAsBinary(cpu.memory[0xFF00]);
+	putchar('-');
 	printf("%x - $%x - ", cpu.pc, cpu.memory[cpu.pc]);
 	printByteAsBinary(cpu.memory[cpu.pc]);
 	putchar(' ');
 	ret = parse_opcode(&cpu, cpu.pc);
-	//	output_registers(&cpu);
+	output_registers(&cpu);
 	if (ret == -1) {
 	    // output_memory(&cpu);
 	    break;
@@ -989,6 +1007,7 @@ int main(int argc, char *argv[]) {
 		    for (int j = 0; j < 2*NUM_KEYS; j++)
 			if (KEYS[j] == event.key.keysym.sym)
 			    {
+				printf("key press\n");
 				KeyPress(&cpu, j%NUM_KEYS);
 				break;
 			    }
@@ -999,6 +1018,7 @@ int main(int argc, char *argv[]) {
 		for (int j = 0; j < 2*NUM_KEYS; j++)
 		    if (KEYS[j] == event.key.keysym.sym)
 			{
+			    printf("key release\n");
 			    KeyRelease(&cpu, j%NUM_KEYS);
 			    break;
 			}
