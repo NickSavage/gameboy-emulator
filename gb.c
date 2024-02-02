@@ -906,7 +906,6 @@ void handle_interrupts(struct CPU *cpu) {
 }
 void UpdateP1(struct CPU *cpu)
 {
-    printf("before %x\n", cpu->memory[0xFF00]);
     cpu->memory[0xFF00] |= 0x0F;
     if (!(cpu->memory[0xFF00] & 0x10))
 	cpu->memory[0xFF00] &= 0xF0 | ((cpu->keys & 0x0F) ^ 0x0F);
@@ -915,7 +914,6 @@ void UpdateP1(struct CPU *cpu)
     if (cpu->keys == 0) {
 	cpu->memory[0xFF00] = cpu->memory[0xFF00] & 0b11110000;
     }
-    printf("after %x\n", cpu->memory[0xFF00]);
 }
 
 void KeyPress(struct CPU *cpu, uint8_t key)
@@ -927,10 +925,7 @@ void KeyPress(struct CPU *cpu, uint8_t key)
 
 void KeyRelease(struct CPU *cpu, uint8_t key)
 {
-    printf("cpu keys, %x - ", cpu->keys);
-    //    cpu->keys = cpu->keys & 0b11110000;
     cpu->keys = 0;
-    printf("cpu keys, %x\n", cpu->keys);
     UpdateP1(cpu);
     //R_IF |= CONTROL_INTR;
 }
@@ -984,14 +979,11 @@ int main(int argc, char *argv[]) {
 	/* if (cpu.pc == 0) { */
 	/*     printf("asdf"); */
 	/* } */
-	printf("0xFF00 ");
-	printByteAsBinary(cpu.memory[0xFF00]);
-	putchar('-');
 	printf("%x - $%x - ", cpu.pc, cpu.memory[cpu.pc]);
 	printByteAsBinary(cpu.memory[cpu.pc]);
 	putchar(' ');
 	ret = parse_opcode(&cpu, cpu.pc);
-	output_registers(&cpu);
+	//output_registers(&cpu);
 	if (ret == -1) {
 	    // output_memory(&cpu);
 	    break;
@@ -1007,7 +999,6 @@ int main(int argc, char *argv[]) {
 		    for (int j = 0; j < 2*NUM_KEYS; j++)
 			if (KEYS[j] == event.key.keysym.sym)
 			    {
-				printf("key press\n");
 				KeyPress(&cpu, j%NUM_KEYS);
 				break;
 			    }
@@ -1018,7 +1009,6 @@ int main(int argc, char *argv[]) {
 		for (int j = 0; j < 2*NUM_KEYS; j++)
 		    if (KEYS[j] == event.key.keysym.sym)
 			{
-			    printf("key release\n");
 			    KeyRelease(&cpu, j%NUM_KEYS);
 			    break;
 			}
