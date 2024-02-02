@@ -277,8 +277,10 @@ int parse_opcode(struct CPU *cpu, int pc) {
 	break;
     case (0xd9):
 	// reti
+	printf("reti");
 	ret_function(cpu);
 	cpu->ime = 1;
+	cpu->pc -= 1; // with vblank interrupts, it sets the counter one higher than it should be
 	break;
     case(0xe2):
 	addr = 0xFF00 + cpu->regs[REG_C];
@@ -895,7 +897,28 @@ void handle_interrupts(struct CPU *cpu) {
     }
     cpu->memory[0xffff] = 0;
 }
+void UpdateP1(struct CPU *cpu)
+{
+	cpu->memory[0xFF00] |= 0x0F;
+	if (!(cpu->memory[0xFF00] & 0x10))
+		cpu->memory[0xFF00] &= 0xF0 | ((cpu->keys & 0x0F) ^ 0x0F);
+	if (!(cpu->memory[0xFF00] & 0x20))
+		cpu->memory[0xFF00] &= 0xF0 | (((cpu->keys >> 4) & 0x0F) ^ 0x0F);
+}
 
+void KeyPress(struct CPU *cpu, uint8_t key)
+{
+    cpu->keys |= 0x01 << key;
+    UpdateP1(cpu);
+	//R_IF |= CONTROL_INTR;
+}
+
+void KeyRelease(struct CPU *cpu, uint8_t key)
+{
+    cpu->keys &= (0x01 << key) ^ 0xFF;
+    UpdateP1(cpu);
+    //R_IF |= CONTROL_INTR;
+}
 int main(int argc, char *argv[]) {
     if (argc != 2) {
         printf("Usage: %s <filename>\n", argv[0]);
@@ -962,15 +985,24 @@ int main(int argc, char *argv[]) {
 		if (event.key.keysym.sym == SDLK_q) {
 		    running = 0;
 		}
+		else {
+		    for (int j = 0; j < 2*NUM_KEYS; j++)
+			if (KEYS[j] == event.key.keysym.sym)
+			    {
+				KeyPress(&cpu, j%NUM_KEYS);
+				break;
+			    }
+		    
+		}
 	    }
-	    /* else if (event.type == SDL_KEYUP) { */
-	    /* 	for (int j = 0; j < 2*NUM_KEYS; j++) */
-	    /* 	    if (KEYS[j] == event.key.keysym.sym) */
-	    /* 		{ */
-	    /* 		    KeyRelease(&cpu, j%NUM_KEYS); */
-	    /* 		    break; */
-	    /* 		} */
-	    /* } */
+	    else if (event.type == SDL_KEYUP) {
+		for (int j = 0; j < 2*NUM_KEYS; j++)
+		    if (KEYS[j] == event.key.keysym.sym)
+			{
+			    KeyRelease(&cpu, j%NUM_KEYS);
+			    break;
+			}
+	    }
 	}
 
 	cpu.clock += 1;
