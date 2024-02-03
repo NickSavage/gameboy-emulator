@@ -883,6 +883,7 @@ void render_sprites(struct CPU *cpu, struct PPU *ppu, uint8_t ly) {
     
     uint8_t low;
     uint8_t high;
+    uint8_t i;
     
     uint16_t addr;
     uint8_t pixel;
@@ -909,9 +910,12 @@ void render_sprites(struct CPU *cpu, struct PPU *ppu, uint8_t ly) {
 	    /* printf("%d, %d, %d, %d, %x, %x\n", ly, tile_y_pos, tile_x_pos, tile_y_diff, tile_number, addr); */
 
 	    for (int x = 0; x < 8; x++) {
-		pixel = interleave_tile_pixel(cpu->memory[addr], cpu->memory[addr + 1], 7 - x);
-		colour_pixel = colourize_pixel(pixel);
-		ppu->fb[ly][tile_x_pos - 8 + x] = colour_pixel;
+		i = (sprite_flags & 0b00100000 << 5) == 1 ? x : 7 - x; 
+		pixel = interleave_tile_pixel(cpu->memory[addr], cpu->memory[addr + 1], i);
+		if (!(pixel == 0)) {
+		    colour_pixel = colourize_pixel(pixel);
+		    ppu->fb[ly][tile_x_pos - 8 + x] = colour_pixel;
+		}
 	    }
 	    
 	}
