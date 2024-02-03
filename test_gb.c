@@ -163,6 +163,19 @@ void test_srl() {
     
 }
 
+void test_bit() {
+    struct CPU cpu;
+
+    load_reg(&cpu, REG_A, 0b00100000);
+    bit(&cpu, 5, REG_A);
+    assert(get_z_flag(&cpu) == 0);
+    assert(get_n_flag(&cpu) == 0);
+    assert(get_h_flag(&cpu) == 1);
+    bit(&cpu, 4, REG_A);
+    assert(get_z_flag(&cpu) == 1);
+    
+}
+
 int main() {
     test_add();
     test_add_16();
@@ -177,5 +190,6 @@ int main() {
     test_call_ret();
     test_swap();
     test_srl();
+    test_bit();
     printf("\n");
 }

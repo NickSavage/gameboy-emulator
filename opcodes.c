@@ -86,6 +86,18 @@ void srl(struct CPU *cpu, uint8_t reg) {
     cpu->regs[reg] = cpu->regs[reg] >> 1;
 }
 
+void bit(struct CPU *cpu, uint8_t n, uint8_t reg) {
+
+    if ((cpu->regs[reg] & 1 << n ) > 1) {
+        cpu->regs[REG_F] &= ~(1 << FLAG_Z);
+    } else {
+	cpu->regs[REG_F] |= 1 << FLAG_Z;
+    }
+    
+    set_h_flag(cpu, 1);
+    set_n_flag(cpu, 0);
+}
+
 void load_reg(struct CPU *cpu, unsigned char reg, unsigned char amount) {
     cpu->regs[reg] = amount;
 }
