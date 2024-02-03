@@ -907,9 +907,9 @@ void handle_interrupts(struct CPU *cpu) {
 void UpdateP1(struct CPU *cpu)
 {
     cpu->memory[0xFF00] |= 0x0F;
-    if (!(cpu->memory[0xFF00] & 0x10))
+    if (!((cpu->memory[0xFF00] & 0x10) == 1))
 	cpu->memory[0xFF00] &= 0xF0 | ((cpu->keys & 0x0F) ^ 0x0F);
-    if (!(cpu->memory[0xFF00] & 0x20))
+    if (!((cpu->memory[0xFF00] & 0x20) == 1))
 	cpu->memory[0xFF00] &= 0xF0 | (((cpu->keys >> 4) & 0x0F) ^ 0x0F);
     if (cpu->keys == 0) {
 	cpu->memory[0xFF00] = cpu->memory[0xFF00] & 0b11110000;
@@ -920,14 +920,12 @@ void KeyPress(struct CPU *cpu, uint8_t key)
 {
     cpu->keys |= 0x01 << key;
     UpdateP1(cpu);
-	//R_IF |= CONTROL_INTR;
 }
 
 void KeyRelease(struct CPU *cpu, uint8_t key)
 {
     cpu->keys = 0;
     UpdateP1(cpu);
-    //R_IF |= CONTROL_INTR;
 }
 int main(int argc, char *argv[]) {
     if (argc != 2) {
