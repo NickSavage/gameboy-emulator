@@ -42,12 +42,13 @@ void set_c_flag(struct CPU *cpu, int bit) {
 	exit(0);
     }
 }
-void set_h_flag(struct CPU *cpu, int a, int b) {
-    if ((((a & 0x0F) + (b & 0x0F)) & 0x10) > 0) {  
+void set_h_flag(struct CPU *cpu, int bit) {
+    if (bit > 0) {  
         cpu->regs[REG_F] |= (1 << FLAG_H);
-    } else  {
+    } else if (bit == 0) {
 	cpu->regs[REG_F] &= ~(1 << FLAG_H);
     } 
+
 }
 
 int get_z_flag(struct CPU *cpu) {
@@ -92,7 +93,7 @@ void bit(struct CPU *cpu, uint8_t n, uint8_t reg) {
 	cpu->regs[REG_F] |= 1 << FLAG_Z;
     }
     
-    //todo set h flag
+    set_h_flag(cpu, 1);
     set_n_flag(cpu, 0);
 }
 
@@ -169,7 +170,8 @@ void adc(struct CPU *cpu, uint8_t amount) {
     uint16_t result = cpu->regs[REG_A] + get_c_flag(cpu) + amount;
     set_z_flag(cpu, REG_A);
     set_c_flag(cpu, (result & 0x100));
-    set_h_flag(cpu, cpu->regs[REG_A], amount);
+    set_h_flag(cpu, ((cpu->regs[REG_A] & 0x0F) + (amount & 0x0F)) & 0x10);
+
     set_n_flag(cpu, 0);
     cpu->regs[REG_A] = result & 0xFF;
 }
@@ -217,7 +219,7 @@ void compare(struct CPU *cpu, unsigned char amount) {
 }
 
 void and(struct CPU *cpu, unsigned char amount) {
-    set_h_flag(cpu, cpu->regs[REG_A], amount);
+    set_h_flag(cpu, ((cpu->regs[REG_A] & 0x0F) + (amount & 0x0F)) & 0x10);
     set_n_flag(cpu, 0);
     set_c_flag(cpu, 0);
 
@@ -228,7 +230,7 @@ void and(struct CPU *cpu, unsigned char amount) {
 
 void or_8(struct CPU *cpu, uint8_t amount) {
     
-    //todo set h flag
+    set_h_flag(cpu, ((cpu->regs[REG_A] & 0x0F) | (amount & 0x0F)) & 0x10);
     cpu->regs[REG_A] = cpu->regs[REG_A] | amount;
     set_z_flag(cpu, REG_A);
     set_n_flag(cpu, 0);
@@ -241,12 +243,12 @@ void or(struct CPU *cpu, unsigned char reg) {
 
 
 void xor(struct CPU *cpu, unsigned char reg) {
+    set_h_flag(cpu, ((cpu->regs[REG_A] & 0x0F) ^ (cpu->regs[reg] & 0x0F)) & 0x10);
     cpu->regs[REG_A] = cpu->regs[REG_A] ^ cpu->regs[reg];
 
     set_z_flag(cpu, REG_A);
     set_n_flag(cpu, 0);
     set_c_flag(cpu, 0);
-    // todo set_h_flag
 }
 
 void push(struct CPU *cpu, uint8_t reg) {
