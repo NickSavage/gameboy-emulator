@@ -42,16 +42,14 @@ void set_c_flag(struct CPU *cpu, int bit) {
 	exit(0);
     }
 }
-void set_h_flag(struct CPU *cpu, int bit) {
-    if (bit == 1) {  
+void set_h_flag(struct CPU *cpu, int a, int b) {
+    if ((((a & 0x0F) + (b & 0x0F)) & 0x10) > 0) {  
         cpu->regs[REG_F] |= (1 << FLAG_H);
-    } else if (bit == 0) {
+    } else  {
 	cpu->regs[REG_F] &= ~(1 << FLAG_H);
-    } else {
-	printf("set_h_flag given not 1 or 0");
-	exit(0);
-    }
+    } 
 }
+
 int get_z_flag(struct CPU *cpu) {
     int ret = (cpu->regs[REG_F] & 0b10000000) >> FLAG_Z;
     return ret;
@@ -94,7 +92,7 @@ void bit(struct CPU *cpu, uint8_t n, uint8_t reg) {
 	cpu->regs[REG_F] |= 1 << FLAG_Z;
     }
     
-    set_h_flag(cpu, 1);
+    //todo set h flag
     set_n_flag(cpu, 0);
 }
 
@@ -167,6 +165,15 @@ void add_16(struct CPU *cpu, uint8_t reg, uint16_t amount) {
     
 }
 
+void adc(struct CPU *cpu, uint8_t amount) {
+    uint16_t result = cpu->regs[REG_A] + get_c_flag(cpu) + amount;
+    set_z_flag(cpu, REG_A);
+    set_c_flag(cpu, (result & 0x100));
+    set_h_flag(cpu, cpu->regs[REG_A], amount);
+    set_n_flag(cpu, 0);
+    cpu->regs[REG_A] = result & 0xFF;
+}
+
 void decrement_8(struct CPU *cpu, uint8_t reg) {
     cpu->regs[reg] -= 1;
 
@@ -210,21 +217,22 @@ void compare(struct CPU *cpu, unsigned char amount) {
 }
 
 void and(struct CPU *cpu, unsigned char amount) {
-    cpu->regs[REG_A]= cpu->regs[REG_A] & amount;
-    
-    set_z_flag(cpu, REG_A);
+    set_h_flag(cpu, cpu->regs[REG_A], amount);
     set_n_flag(cpu, 0);
     set_c_flag(cpu, 0);
-    set_h_flag(cpu, 1);
+
+    cpu->regs[REG_A] = cpu->regs[REG_A] & amount;
+    
+    set_z_flag(cpu, REG_A);
 }
 
 void or_8(struct CPU *cpu, uint8_t amount) {
     
+    //todo set h flag
     cpu->regs[REG_A] = cpu->regs[REG_A] | amount;
     set_z_flag(cpu, REG_A);
     set_n_flag(cpu, 0);
     set_c_flag(cpu, 0);
-    set_h_flag(cpu, 0);
     
 }
 void or(struct CPU *cpu, unsigned char reg) {
@@ -238,7 +246,7 @@ void xor(struct CPU *cpu, unsigned char reg) {
     set_z_flag(cpu, REG_A);
     set_n_flag(cpu, 0);
     set_c_flag(cpu, 0);
-    set_h_flag(cpu, 0);
+    // todo set_h_flag
 }
 
 void push(struct CPU *cpu, uint8_t reg) {

@@ -193,6 +193,11 @@ int parse_cb_opcode(struct CPU *cpu, int pc) {
 	bit(cpu, 7, reg);
 	cpu->clock += 1;
 	break;
+    case (0x88): case (0x89): case (0x8a): case (0x8b): case (0x8c): case (0x8d): case (0x8e): case (0x8f):
+	// adc r
+	reg = first & 0b00000111;
+	
+	break;
     case (0x87):
 	printf(" res 0, a");
 	reg = REG_A;
@@ -207,11 +212,11 @@ int parse_cb_opcode(struct CPU *cpu, int pc) {
     return result;
 }
 
-int parse_opcode(struct CPU *cpu, int pc) {
+int parse_opcode(struct CPU *cpu) {
     
-    unsigned char first = cpu->memory[pc];
-    unsigned char second = cpu->memory[pc + 1];
-    unsigned char third = cpu->memory[pc + 2];
+    unsigned char first = cpu->memory[cpu->pc];
+    unsigned char second = cpu->memory[cpu->pc + 1];
+    unsigned char third = cpu->memory[cpu->pc + 2];
     uint16_t addr;
     uint8_t reg;
     uint8_t n;
@@ -1028,7 +1033,7 @@ int main(int argc, char *argv[]) {
 	printf("%x - $%x - ", cpu.pc, cpu.memory[cpu.pc]);
 	printByteAsBinary(cpu.memory[cpu.pc]);
 	putchar(' ');
-	ret = parse_opcode(&cpu, cpu.pc);
+	ret = parse_opcode(&cpu);
 	//output_registers(&cpu);
 	if (ret == -1) {
 	    // output_memory(&cpu);

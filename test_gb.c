@@ -25,6 +25,39 @@ void test_add_16() {
     assert(cpu.regs[REG_L] == 0x40);
 }
 
+void test_adc() {
+    struct CPU cpu;
+    
+    load_reg(&cpu, REG_A, 0x10);
+    load_reg(&cpu, REG_B, 0x10);
+    adc(&cpu, cpu.regs[REG_B]);
+    assert(cpu.regs[REG_A] == 0x20);
+    assert(get_z_flag(&cpu) == 0);
+    assert(get_c_flag(&cpu) == 0);
+    assert(get_n_flag(&cpu) == 0);
+    assert(get_h_flag(&cpu) == 0);
+    
+    load_reg(&cpu, REG_A, 0x10);
+    load_reg(&cpu, REG_B, 0x10);
+    set_c_flag(&cpu, 1);
+    adc(&cpu, cpu.regs[REG_B]);
+    assert(cpu.regs[REG_A] == 0x21);
+    assert(get_z_flag(&cpu) == 0);
+    assert(get_c_flag(&cpu) == 0);
+    assert(get_n_flag(&cpu) == 0);
+    assert(get_h_flag(&cpu) == 0);
+    
+    load_reg(&cpu, REG_A, 35);
+    load_reg(&cpu, REG_B, 62);
+    set_c_flag(&cpu, 1);
+    adc(&cpu, cpu.regs[REG_B]);
+    assert(cpu.regs[REG_A] == 98);
+    assert(get_z_flag(&cpu) == 0);
+    assert(get_c_flag(&cpu) == 0);
+    assert(get_n_flag(&cpu) == 0);
+    assert(get_h_flag(&cpu) == 1);
+}
+
 void test_sub() {
     unsigned char amount = 0b00010000;
     struct CPU cpu;
@@ -92,13 +125,13 @@ void test_set_c_flag() {
     set_c_flag(&cpu, 0);
     assert(get_c_flag(&cpu) == 0);
 }
-void test_set_h_flag() {
-    struct CPU cpu;
-    set_h_flag(&cpu, 1);
-    assert(get_h_flag(&cpu) == 1);
-    set_h_flag(&cpu, 0);
-    assert(get_h_flag(&cpu) == 0);
-}
+/* void test_set_h_flag() { */
+/*     struct CPU cpu; */
+/*     set_h_flag(&cpu, 1); */
+/*     assert(get_h_flag(&cpu) == 1); */
+/*     set_h_flag(&cpu, 0); */
+/*     assert(get_h_flag(&cpu) == 0); */
+/* } */
 
 void test_set_mem() {
     struct CPU cpu;
@@ -179,12 +212,13 @@ void test_bit() {
 int main() {
     test_add();
     test_add_16();
+    test_adc();
     test_sub();
     test_compare();
     test_xor();
     test_set_n_flag();
     test_set_c_flag();
-    test_set_h_flag();
+    //    test_set_h_flag();
     test_set_mem();
     test_push_pop();
     test_call_ret();
