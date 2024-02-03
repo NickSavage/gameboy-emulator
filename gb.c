@@ -145,6 +145,54 @@ int parse_cb_opcode(struct CPU *cpu, int pc) {
 	srl(cpu, reg);
 
 	break;
+    case (0x40): case (0x41): case (0x42): case (0x43): case (0x44): case (0x45): case (0x46): case (0x47): 
+	// bit 0, r
+	reg = first & 0b00000111;
+	bit(cpu, 0, reg);
+	cpu->clock += 1;
+	break;
+    case (0x48): case (0x49): case (0x4a): case (0x4b): case (0x4c): case (0x4d): case (0x4e): case (0x4f): 
+	// bit 0, r
+	reg = first & 0b00000111;
+	bit(cpu, 1, reg);
+	cpu->clock += 1;
+	break;
+    case (0x50): case (0x51): case (0x52): case (0x53): case (0x54): case (0x55): case (0x56): case (0x57): 
+	// bit 0, r
+	reg = first & 0b00000111;
+	bit(cpu, 2, reg);
+	cpu->clock += 1;
+	break;
+    case (0x58): case (0x59): case (0x5a): case (0x5b): case (0x5c): case (0x5d): case (0x5e): case (0x5f): 
+	// bit 0, r
+	reg = first & 0b00000111;
+	bit(cpu, 3, reg);
+	cpu->clock += 1;
+	break;
+    case (0x60): case (0x61): case (0x62): case (0x63): case (0x64): case (0x65): case (0x66): case (0x67): 
+	// bit 0, r
+	reg = first & 0b00000111;
+	bit(cpu, 4, reg);
+	cpu->clock += 1;
+	break;
+    case (0x68): case (0x69): case (0x6a): case (0x6b): case (0x6c): case (0x6d): case (0x6e): case (0x6f): 
+	// bit 0, r
+	reg = first & 0b00000111;
+	bit(cpu, 5, reg);
+	cpu->clock += 1;
+	break;
+    case (0x70): case (0x71): case (0x72): case (0x73): case (0x74): case (0x75): case (0x76): case (0x77): 
+	// bit 0, r
+	reg = first & 0b00000111;
+	bit(cpu, 6, reg);
+	cpu->clock += 1;
+	break;
+    case (0x78): case (0x79): case (0x7a): case (0x7b): case (0x7c): case (0x7d): case (0x7e): case (0x7f): 
+	// bit 0, r
+	reg = first & 0b00000111;
+	bit(cpu, 7, reg);
+	cpu->clock += 1;
+	break;
     case (0x87):
 	printf(" res 0, a");
 	reg = REG_A;
