@@ -193,11 +193,6 @@ int parse_cb_opcode(struct CPU *cpu, int pc) {
 	bit(cpu, 7, reg);
 	cpu->clock += 1;
 	break;
-    case (0x88): case (0x89): case (0x8a): case (0x8b): case (0x8c): case (0x8d): case (0x8e): case (0x8f):
-	// adc r
-	reg = first & 0b00000111;
-	
-	break;
     case (0x87):
 	printf(" res 0, a");
 	reg = REG_A;
@@ -307,6 +302,12 @@ int parse_opcode(struct CPU *cpu) {
 
 	cpu->clock += 1;
 	
+	break;
+    case (0x88): case (0x89): case (0x8a): case (0x8b): case (0x8c): case (0x8d): case (0x8e): case (0x8f):
+	// adc r
+	reg = first & 0b00000111;
+	printf("adc %s", regNames[reg]);
+	adc(cpu, cpu->regs[reg]);
 	break;
     case(0xcb):
 	// cb, prefix, still not really sure what this is
