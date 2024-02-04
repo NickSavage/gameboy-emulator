@@ -20,6 +20,7 @@ void reset_bit(struct CPU *cpu, uint8_t reg, uint8_t bit);
 void swap(struct CPU *cpu, uint8_t reg);
 void srl(struct CPU *cpu, uint8_t reg);
 void bit(struct CPU *cpu, uint8_t n, uint8_t reg);
+void ccf(struct CPU *cpu);
 
 void load_reg(struct CPU *cpu, unsigned char reg, unsigned char amount);
 void load_reg_16(struct CPU *cpu, unsigned char reg, unsigned char low, unsigned char high);

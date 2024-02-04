@@ -60,6 +60,7 @@ void init_cpu(struct CPU *cpu) {
 
     cpu->clock = 0;
     cpu->pc = 0x0100;
+    cpu->sp = 0xFFFE;
     cpu->memory[0xFF44] = 144; // plugged, relates to vblank
     for (int i = 0x0000; i < 0x7fff; i++) {
 	cpu->memory[i] = cpu->rom[i];
@@ -303,11 +304,21 @@ int parse_opcode(struct CPU *cpu) {
 	cpu->clock += 1;
 	
 	break;
+    case (0x3f):
+	printf(" ccf");
+	ccf(cpu);
+	break;
     case (0x88): case (0x89): case (0x8a): case (0x8b): case (0x8c): case (0x8d): case (0x8e): case (0x8f):
 	// adc r
 	reg = first & 0b00000111;
 	printf("adc %s", regNames[reg]);
 	adc(cpu, cpu->regs[reg]);
+	break;
+    case (0xce):
+        printf(" adc a, %d", second);
+	adc(cpu, second);
+	cpu->clock += 1;
+	ret = 1;
 	break;
     case(0xcb):
 	// cb, prefix, still not really sure what this is
@@ -622,6 +633,19 @@ int parse_opcode(struct CPU *cpu) {
 	
 	cpu->clock += 1;
     }
+    else if (first == 0x03) {
+	printf("inc bc");
+	int total = (cpu->regs[REG_B] << 8) + cpu->regs[REG_C] + 1;
+	int high = (total >> 8) & 0xFF;
+	int low = total & 0xFF;
+
+	cpu->regs[REG_B] = high;
+	cpu->regs[REG_C] = low;
+
+	printf("; %x", (cpu->regs[REG_B] << 8) + cpu->regs[REG_C]);
+
+	cpu->clock += 1;
+    }
     else if (first == 0x13) {
 	printf("inc de");
 	int total = (cpu->regs[REG_D] << 8) + cpu->regs[REG_E] + 1;
@@ -674,6 +698,12 @@ int parse_opcode(struct CPU *cpu) {
 	cpu->pc = addr - 1;
 
 	cpu->clock += 3;
+    }
+    else if (first == 0xe9) {
+	// jp hl
+	int addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
+	printf(" JP hl - %x", addr);
+	cpu->pc = addr - 1;
     }
     else if ((first & 0b11100111) == 0b11000010) {
 	// jp cc, n
@@ -1081,8 +1111,8 @@ int main(int argc, char *argv[]) {
 
     }
     putchar('\n');
-    /* output_registers(&cpu); */
-    /* output_memory(&cpu); */
+     output_registers(&cpu);
+    output_memory(&cpu);
     // Free the memory
     free(data);
     

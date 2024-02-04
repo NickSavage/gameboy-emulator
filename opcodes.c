@@ -33,7 +33,7 @@ void set_n_flag(struct CPU *cpu, int bit) {
 }
 
 void set_c_flag(struct CPU *cpu, int bit) {
-    if (bit == 1) {  
+    if (bit > 0) {  
         cpu->regs[REG_F] |= (1 << FLAG_C);
     } else if (bit == 0) {
 	cpu->regs[REG_F] &= ~(1 << FLAG_C);
@@ -95,6 +95,14 @@ void bit(struct CPU *cpu, uint8_t n, uint8_t reg) {
     
     set_h_flag(cpu, 1);
     set_n_flag(cpu, 0);
+}
+
+void ccf(struct CPU *cpu) {
+    if (get_c_flag(cpu) == 1) {
+	set_c_flag(cpu, 0);
+    } else {
+	set_c_flag(cpu, 1);
+    }
 }
 
 void load_reg(struct CPU *cpu, unsigned char reg, unsigned char amount) {
