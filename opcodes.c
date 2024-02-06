@@ -87,10 +87,23 @@ void srl(struct CPU *cpu, uint8_t reg) {
 
 void bit(struct CPU *cpu, uint8_t n, uint8_t reg) {
 
-    if ((cpu->regs[reg] & 1 << n ) > 1) {
-        cpu->regs[REG_F] &= ~(1 << FLAG_Z);
+    if (reg == 0b110) {
+	// hl
+	uint16_t addr = (cpu->memory[REG_H] << 8) + cpu->memory[REG_L];
+
+	if ((cpu->memory[addr] & 1 << n ) > 1) {
+	    cpu->regs[REG_F] &= ~(1 << FLAG_Z);
+	} else {
+	    cpu->regs[REG_F] |= 1 << FLAG_Z;
+	}
+	
     } else {
-	cpu->regs[REG_F] |= 1 << FLAG_Z;
+	if ((cpu->regs[reg] & 1 << n ) > 1) {
+	    cpu->regs[REG_F] &= ~(1 << FLAG_Z);
+	} else {
+	    cpu->regs[REG_F] |= 1 << FLAG_Z;
+	}
+	
     }
     
     set_h_flag(cpu, 1);

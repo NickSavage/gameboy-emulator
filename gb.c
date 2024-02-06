@@ -130,7 +130,10 @@ int check_flag_c(struct CPU *cpu) {
 
 int parse_cb_opcode(struct CPU *cpu, int pc) {
     unsigned char first = cpu->memory[cpu->pc];
+    printf(" %x", first);
 
+    uint8_t num;
+    uint16_t addr;
     uint8_t reg;
     int result = 0;
     switch(first) {
@@ -149,48 +152,56 @@ int parse_cb_opcode(struct CPU *cpu, int pc) {
     case (0x40): case (0x41): case (0x42): case (0x43): case (0x44): case (0x45): case (0x46): case (0x47): 
 	// bit 0, r
 	reg = first & 0b00000111;
+	printf(" bit 0, %s", regNames[reg]);
 	bit(cpu, 0, reg);
 	cpu->clock += 1;
 	break;
     case (0x48): case (0x49): case (0x4a): case (0x4b): case (0x4c): case (0x4d): case (0x4e): case (0x4f): 
-	// bit 0, r
+	// bit 1, r
 	reg = first & 0b00000111;
+	printf(" bit 1, %s", regNames[reg]);
 	bit(cpu, 1, reg);
 	cpu->clock += 1;
 	break;
     case (0x50): case (0x51): case (0x52): case (0x53): case (0x54): case (0x55): case (0x56): case (0x57): 
-	// bit 0, r
+	// bit 2, r
 	reg = first & 0b00000111;
+	printf(" bit 2, %s", regNames[reg]);
 	bit(cpu, 2, reg);
 	cpu->clock += 1;
 	break;
     case (0x58): case (0x59): case (0x5a): case (0x5b): case (0x5c): case (0x5d): case (0x5e): case (0x5f): 
-	// bit 0, r
+	// bit 3, r
 	reg = first & 0b00000111;
+	printf(" bit 3, %s", regNames[reg]);
 	bit(cpu, 3, reg);
 	cpu->clock += 1;
 	break;
     case (0x60): case (0x61): case (0x62): case (0x63): case (0x64): case (0x65): case (0x66): case (0x67): 
-	// bit 0, r
+	// bit 4, r
 	reg = first & 0b00000111;
+	printf(" bit 4, %s", regNames[reg]);
 	bit(cpu, 4, reg);
 	cpu->clock += 1;
 	break;
     case (0x68): case (0x69): case (0x6a): case (0x6b): case (0x6c): case (0x6d): case (0x6e): case (0x6f): 
-	// bit 0, r
+	// bit 5, r
 	reg = first & 0b00000111;
+	printf(" bit 5, %s", regNames[reg]);
 	bit(cpu, 5, reg);
 	cpu->clock += 1;
 	break;
     case (0x70): case (0x71): case (0x72): case (0x73): case (0x74): case (0x75): case (0x76): case (0x77): 
-	// bit 0, r
+	// bit 6, r
 	reg = first & 0b00000111;
+	printf(" bit 6, %s", regNames[reg]);
 	bit(cpu, 6, reg);
 	cpu->clock += 1;
 	break;
     case (0x78): case (0x79): case (0x7a): case (0x7b): case (0x7c): case (0x7d): case (0x7e): case (0x7f): 
-	// bit 0, r
+	// bit 7, r
 	reg = first & 0b00000111;
+	printf(" bit 7, %s", regNames[reg]);
 	bit(cpu, 7, reg);
 	cpu->clock += 1;
 	break;
@@ -198,6 +209,21 @@ int parse_cb_opcode(struct CPU *cpu, int pc) {
 	printf(" res 0, a");
 	reg = REG_A;
 	reset_bit(cpu, reg, 0);
+	break;
+    case (0x86): case (0x96): case (0xa6): case (0xb6):
+    case (0x8e): case (0x9e): case (0xae): case (0xbe):
+	addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
+	num = first & 0b00111000 >> 3;
+	printf(" res %d, [HL]", num);
+	cpu->memory[addr] |= 1 << num;
+	break;
+    case (0xc6): case (0xd6): case (0xe6): case (0xf6):
+    case (0xce): case (0xde): case (0xee): case (0xfe):
+	// set hl
+	addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
+	num = (first & 0b00111000) >> 3;
+	printf(" set %d, [HL]", num);
+	cpu->memory[addr] &= 1 << num;
 	break;
     default:
 	printf("unimplemented cb opcode");
@@ -260,6 +286,11 @@ int parse_opcode(struct CPU *cpu) {
 	ret = 2;
 	cpu->clock += 4;
 	break;
+    case (0x76):
+	printf(" halt");
+	ret = -1;
+	// todo implement system pausing, for now this matches the right clock speed
+	break;
 
     case (0x90):case (0x91):case (0x92):case (0x93):case (0x94):case (0x95):case (0x96):case (0x97):
 	reg = (first & 0b00000111);
@@ -290,8 +321,8 @@ int parse_opcode(struct CPU *cpu) {
 	    
     case (0x2a):
 	// ld a, (HL+)
-	printf("ld a, [hl+]");
 	addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
+	printf("ld a, [hl+] - HL: %x, [HL]: %x", addr, cpu->memory[addr]);
 	load_reg(cpu, REG_A, cpu->memory[addr]);
 
 	int total = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L] + 1;
@@ -483,9 +514,8 @@ int parse_opcode(struct CPU *cpu) {
 	
 	int addr = (cpu->regs[REG_B] << 8) + cpu->regs[REG_C];
 	
-	printf(" ld a, [BC]");
+	printf(" ld a, [BC] - BC: %x,[BC]:%x", addr, cpu->memory[addr]);
 	cpu->regs[REG_A] = cpu->memory[addr];
-	ret = 1;
 	cpu->clock += 1;
     }
     else if ((first & 0b11111111) == 0b00011010) {
@@ -493,7 +523,7 @@ int parse_opcode(struct CPU *cpu) {
 	
 	int addr = (cpu->regs[REG_D] << 8) + cpu->regs[REG_E];
 	
-	printf(" ld a, [DE]");
+	printf(" ld a, [DE] - DE: %x,[DE]:%x", addr, cpu->memory[addr]);
 	cpu->regs[REG_A] = cpu->memory[addr];
 	cpu->clock += 1;
     }
@@ -501,7 +531,7 @@ int parse_opcode(struct CPU *cpu) {
 	// ld [DE], a
 	int addr = (cpu->regs[REG_D] << 8) + cpu->regs[REG_E];
 	
-	printf(" ld [DE], a");
+	printf(" ld [DE], a: DE: %x", addr);
 	cpu->memory[addr] = cpu->regs[REG_A];
 
 	cpu->clock += 1;
@@ -516,7 +546,7 @@ int parse_opcode(struct CPU *cpu) {
     }
     else if (first == 0b11100000) {
 	// ldh 
-	printf(" ldh [%x], a", 0xFF00 + second);
+	printf(" ldh [%x], a - $%x", 0xFF00 + second, cpu->regs[REG_A]);
 	ret = 1;
 
 	if (0xFF00 + second == 0xff00) {
@@ -624,7 +654,7 @@ int parse_opcode(struct CPU *cpu) {
 	// ld (HL+), a
 	int addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
 	
-	printf(" ld [HL+], a");
+	printf(" ld [HL+], a - HL: %x", addr);
 	set_mem(cpu, addr, cpu->regs[REG_A]);
 	
 	addr += 1;
@@ -959,11 +989,14 @@ void render_sprites(struct CPU *cpu, struct PPU *ppu, uint8_t ly) {
 void render_frame(struct CPU *cpu, struct PPU *ppu, SDL_Texture *tex, SDL_Renderer *ren) {
     uint8_t ly = cpu->memory[0xFF44];
     
+    printf("render frame $%x ly: %d, bit: %x\n", cpu->memory[0xFF40], ly, cpu->memory[0xFF40] >> 7);
     if (ly == 144) {
 	request_vblank_int(cpu);
     } else if (ly > 144) {
 	
-    } else if ((cpu->memory[0xFF40] & 0b10000000) >> 7 == 1) {
+    } else if ((cpu->memory[0xFF40] >> 7) == 1) {
+	printf("lcd on");
+	
 	SDL_SetRenderDrawColor(ren, 255, 255, 255, 255);
 	SDL_RenderClear(ren);
 	
@@ -1110,6 +1143,9 @@ int main(int argc, char *argv[]) {
 	handle_interrupts(&cpu);
 
     }
+    putchar('\n');
+    printf("LCDC: ");
+    printByteAsBinary(cpu.memory[0xFF40]);
     putchar('\n');
      output_registers(&cpu);
     output_memory(&cpu);
