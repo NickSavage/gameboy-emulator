@@ -288,7 +288,7 @@ int parse_opcode(struct CPU *cpu) {
 	break;
     case (0x76):
 	printf(" halt");
-	ret = -1;
+	/* ret = -1; */
 	// todo implement system pausing, for now this matches the right clock speed
 	break;
 
