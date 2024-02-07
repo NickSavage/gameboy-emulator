@@ -305,6 +305,17 @@ int parse_opcode(struct CPU *cpu) {
 	if (cc == COND_Z && get_z_flag(cpu) == 1) {
 	    ret_function(cpu);
 	    cpu->clock += 4;
+	} else if (cc == COND_NZ && get_z_flag(cpu) == 0) {
+	    ret_function(cpu);
+	    cpu->clock += 4;
+	    
+	} else if (cc == COND_C && get_c_flag(cpu) == 1) {
+	    ret_function(cpu);
+	    cpu->clock += 4;
+	    
+	} else if (cc == COND_NC && get_c_flag(cpu) == 0) {
+	    ret_function(cpu);
+	    cpu->clock += 4;
 	} else {
 	    cpu->clock += 1;
 	}
