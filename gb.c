@@ -130,7 +130,7 @@ int check_flag_c(struct CPU *cpu) {
 
 int parse_cb_opcode(struct CPU *cpu, int pc) {
     unsigned char first = cpu->memory[cpu->pc];
-    printf(" %x", first);
+    printf(" $%x", first);
 
     uint8_t num;
     uint16_t addr;
@@ -258,6 +258,20 @@ int parse_opcode(struct CPU *cpu) {
 	add(cpu, reg, 1);
 
 	break;
+    case (0x32):
+
+	// ld (HL-), a
+	int addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
+	
+	printf(" ld [HL+], a - HL: %x", addr);
+	set_mem(cpu, addr, cpu->regs[REG_A]);
+	
+	addr -= 1;
+	cpu->regs[REG_H] = addr >> 8;
+	cpu->regs[REG_L] = addr & 0xFF;
+	
+	cpu->clock += 1;
+	break;
     case (0x34):
 	// inc [hl]
 	printf(" inc [hl]");
@@ -369,6 +383,35 @@ int parse_opcode(struct CPU *cpu) {
 	ret = parse_cb_opcode(cpu, cpu->pc + 1);
 
 	return ret;
+	
+    case (0xc4): case(0xd4): case (0xcc): case(0xdc):
+	//call cc, nn
+	uint8_t cc = (first & 0b00011000) >> 2;
+	addr = (third << 8) + second;
+	printf(" call [%x]", addr);
+	cpu->pc += 2;
+
+	if ((cc == COND_NZ) && !(get_z_flag(cpu) == 1)) {
+	    call(cpu, third, second);
+	    cpu->clock += 3;
+	    
+	}
+	if ((cc == COND_Z) && (get_z_flag(cpu) == 1)) {
+	    call(cpu, third, second);
+	    cpu->clock += 3;
+	    
+	}
+	if ((cc == COND_NC) && !(check_flag_c(cpu) == 1)) {
+	    call(cpu, third, second);
+	    cpu->clock += 3;
+	    
+	}
+	if ((cc == COND_C) && (check_flag_c(cpu) == 1)) {
+	    call(cpu, third, second);
+	    cpu->clock += 3;
+	    
+	}
+	break;
 	
     case(0xcd):
 	// call nn
@@ -1043,9 +1086,9 @@ void UpdateP1(struct CPU *cpu)
 	cpu->memory[0xFF00] &= 0xF0 | ((cpu->keys & 0x0F) ^ 0x0F);
     if (!((cpu->memory[0xFF00] & 0x20) == 1))
 	cpu->memory[0xFF00] &= 0xF0 | (((cpu->keys >> 4) & 0x0F) ^ 0x0F);
-    if (cpu->keys == 0) {
-	cpu->memory[0xFF00] = cpu->memory[0xFF00] & 0b11110000;
-    }
+    /* if (cpu->keys == 0) { */
+    /* 	cpu->memory[0xFF00] = cpu->memory[0xFF00] & 0b11110000; */
+    /* } */
 }
 
 void KeyPress(struct CPU *cpu, uint8_t key)
