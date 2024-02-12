@@ -152,7 +152,7 @@ void add(struct CPU *cpu, uint8_t reg, unsigned char amount) {
     set_z_flag(cpu, reg);
     
     cpu->regs[REG_F] |= 0 << FLAG_N;
-    printf("%d, %d", cpu->regs[reg], amount);
+    //    printf("%d, %d", cpu->regs[reg], amount);
     if ((cpu->regs[reg]) < 0) {
 	cpu->regs[REG_F] |= 1 << FLAG_C;
     } else {
@@ -317,7 +317,7 @@ void call(struct CPU *cpu, uint8_t high, uint8_t low) {
 
     cpu->memory[cpu->sp - 1] = (cpu->pc >> 8) & 0xFF;
     cpu->memory[cpu->sp - 2] = cpu->pc & 0xFF;
-    printf(" - %x, %x, %x, ret: \n", cpu->sp, cpu->memory[cpu->sp - 1], cpu->memory[cpu-> sp - 2]);
+    //    printf(" - %x, %x, %x, ret: \n", cpu->sp, cpu->memory[cpu->sp - 1], cpu->memory[cpu-> sp - 2]);
     cpu->sp -= 2;
     cpu->pc = (high << 8) + low;
 }
@@ -341,6 +341,6 @@ uint16_t interleave_tile(uint8_t low, uint8_t high) {
         result |= (high & (1 << i)) << (i + 1);
         result |= (low & (1 << i)) << i;
     }
-    printf("%d",result);
+    // printf("%d",result);
     return result;
 }
