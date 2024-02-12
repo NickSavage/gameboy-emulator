@@ -62,6 +62,14 @@ void init_cpu(struct CPU *cpu) {
     cpu->pc = 0x0100;
     cpu->sp = 0xFFFE;
     cpu->memory[0xFF44] = 144; // plugged, relates to vblank
+    cpu->regs[REG_A] = 0x01;
+    cpu->regs[REG_F] = 0xB0;
+    cpu->regs[REG_B] = 0x00;
+    cpu->regs[REG_C] = 0x13;
+    cpu->regs[REG_D] = 0x00;
+    cpu->regs[REG_E] = 0xD8;
+    cpu->regs[REG_H] = 0x01;
+    cpu->regs[REG_L] = 0x4D;
     for (int i = 0x0000; i < 0x7fff; i++) {
 	cpu->memory[i] = cpu->rom[i];
     }
