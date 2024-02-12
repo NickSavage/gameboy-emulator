@@ -147,11 +147,13 @@ void set_mem(struct CPU *cpu, uint16_t addr, uint8_t amount) {
 }
 
 void add(struct CPU *cpu, uint8_t reg, unsigned char amount) {
+    set_h_flag(cpu, ((cpu->regs[reg] & 0x0F) + (amount & 0x0F)) & 0x10);
     cpu->regs[reg] += amount;
 
     set_z_flag(cpu, reg);
     
     cpu->regs[REG_F] |= 0 << FLAG_N;
+
     //    printf("%d, %d", cpu->regs[reg], amount);
     if ((cpu->regs[reg]) < 0) {
 	cpu->regs[REG_F] |= 1 << FLAG_C;
@@ -198,6 +200,8 @@ void adc(struct CPU *cpu, uint8_t amount) {
 }
 
 void decrement_8(struct CPU *cpu, uint8_t reg) {
+
+    set_h_flag(cpu, ((cpu->regs[reg] & 0x0F) - (1 & 0x0F)) & 0x10);
     cpu->regs[reg] -= 1;
 
     if (cpu->regs[reg] == 0) {
