@@ -6,10 +6,28 @@
 #include <QHeaderView>
 #include <cstdlib> // for rand()
 
+
+static const char *regNames[] = {"b", "c", "d", "e", "h", "l", "f", "a"};
+static const char *reg_names_16[] = {"bc", "de", "hl", "sp"};
+
 QString parse_opcode(int *counter, uint8_t first, uint8_t second, uint8_t third) {
-    counter = 0;
+    *counter = 0;
     QString ret = "";
+    uint8_t reg ;
+    uint16_t addr;
+    
     switch (first) {
+    case(0x00):
+	ret = "noop";
+	break;
+    case(0x01): case (0x11): case(0x21): case(0x31):
+	reg = (first & 0b00110000) >> 4;
+	addr = (third << 8) + second;
+	ret = QString("ld ") + QString(reg_names_16[reg]) + QString(", ") + QString("%1").arg(addr, 0, 16);
+
+	*counter = 3;
+	break;
+	
     case(0xfa):
 	*counter = 3;
 	ret = "ld a, [a16]";
@@ -79,11 +97,10 @@ int main(int argc, char *argv[]) {
     tableWidget.setHorizontalHeaderLabels({"hex", "Column 2"});
 
     // Fill the table with random data
-    while (pc < 1500) {
+    while (row < 1500) {
 
 	QString instruction = parse_opcode(&counter, data[row], 0, 0);
 
-	printf("counter: %d", counter);
 	if (counter == 1) {
 	    putchar('a');
 	    hex = QString("%1").arg(data[pc]); // Convert to hexadecimal

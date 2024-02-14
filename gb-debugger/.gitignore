@@ -1,3 +1,4 @@
 .qmake.stash
 debugger.o
 gb-debugger
+Makefile
