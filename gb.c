@@ -509,6 +509,13 @@ int parse_opcode(struct CPU *cpu) {
 	//printf( "rst %x", addr);
 	call(cpu, 0, addr);
 	break;
+    case (0xf8):
+	uint16_t data = cpu->sp + (int8_t)second;
+	set_z_flag(cpu, 0);
+	set_n_flag(cpu, 0);
+	// FINISH
+	
+	break;
     default:
 	found = 0;
     }
