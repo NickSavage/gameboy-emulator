@@ -259,6 +259,25 @@ int parse_opcode(struct CPU *cpu) {
     case(0x00):
 	////printf(" noop");
 	break;
+    case (0x02):
+	// ld [BC], a
+	addr = (cpu->regs[REG_B] << 8) + cpu->regs[REG_C];
+	
+	////printf(" ld [HL+], a - HL: %x", addr);
+	set_mem(cpu, addr, cpu->regs[REG_A]);
+	
+	cpu->clock += 1;
+	break;
+    case (0x12):
+	
+	// ld [DE], a
+	addr = (cpu->regs[REG_D] << 8) + cpu->regs[REG_E];
+	
+	////printf(" ld [HL+], a - HL: %x", addr);
+	set_mem(cpu, addr, cpu->regs[REG_A]);
+	
+	cpu->clock += 1;
+	break;
     case(0x04): case(0x14): case(0x24): case(0x0c): case(0x1c):case(0x2c): case(0x3c):
 	// inc r
 	reg = (first & 0b00111000) >> 3;
@@ -266,10 +285,24 @@ int parse_opcode(struct CPU *cpu) {
 	add(cpu, reg, 1);
 
 	break;
+    case (0x22):
+
+	// ld (HL-), a
+	addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
+	
+	////printf(" ld [HL+], a - HL: %x", addr);
+	set_mem(cpu, addr, cpu->regs[REG_A]);
+	
+	addr += 1;
+	cpu->regs[REG_H] = addr >> 8;
+	cpu->regs[REG_L] = addr & 0xFF;
+	
+	cpu->clock += 1;
+	break;
     case (0x32):
 
 	// ld (HL-), a
-	int addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
+	addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
 	
 	////printf(" ld [HL+], a - HL: %x", addr);
 	set_mem(cpu, addr, cpu->regs[REG_A]);
@@ -348,7 +381,7 @@ int parse_opcode(struct CPU *cpu) {
 	//printf(" ret");
 	ret_function(cpu);
 	cpu->clock += 3;
-	//	cpu->pc -= 1;
+	cpu->pc -= 1;
 
 	break;
 	    
@@ -367,6 +400,10 @@ int parse_opcode(struct CPU *cpu) {
 
 	cpu->clock += 1;
 	
+	break;
+    case (0x2f):
+	// cpl
+	cpl(cpu);
 	break;
     case (0x3f):
 	//printf(" ccf");
@@ -466,7 +503,7 @@ int parse_opcode(struct CPU *cpu) {
 	cpu->ime = 1;
 	cpu->clock += 2;
 	break;
-    case (0xff):
+    case(0xcf): case (0xdf): case( 0xef): case (0xff):
 	// rst 
 	addr = (first & 00111000) >> 3;
 	//printf( "rst %x", addr);
@@ -915,7 +952,7 @@ int parse_opcode(struct CPU *cpu) {
 	//printByteAsBinary(second);
 	//putchar(' ');
 	//printByteAsBinary(third);
-	//printf(" unknown");
+	printf(" unknown");
 	ret = -1;
     }
     //putchar('\n');

@@ -110,6 +110,12 @@ void bit(struct CPU *cpu, uint8_t n, uint8_t reg) {
     set_n_flag(cpu, 0);
 }
 
+void cpl(struct CPU *cpu) {
+    cpu->regs[REG_A] = ~cpu->regs[REG_A];
+    set_n_flag(cpu, 1);
+    set_h_flag(cpu, 1);
+}
+
 void ccf(struct CPU *cpu) {
     if (get_c_flag(cpu) == 1) {
 	set_c_flag(cpu, 0);
@@ -331,7 +337,7 @@ void call(struct CPU *cpu, uint8_t high, uint8_t low) {
 
 void ret_function(struct CPU *cpu) {
     uint16_t addr = (cpu->memory[cpu->sp + 1] << 8) + cpu->memory[cpu->sp];
-    cpu->pc = addr + 1;
+    cpu->pc = addr;
     cpu->sp += 2;
 }
 
