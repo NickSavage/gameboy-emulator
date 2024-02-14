@@ -151,6 +151,8 @@ void add(struct CPU *cpu, uint8_t reg, unsigned char amount) {
     cpu->regs[reg] += amount;
 
     set_z_flag(cpu, reg);
+
+    set_n_flag(cpu, 0);
     
     cpu->regs[REG_F] |= 0 << FLAG_N;
 
@@ -319,6 +321,7 @@ void pop(struct CPU *cpu, uint8_t reg) {
 }
 void call(struct CPU *cpu, uint8_t high, uint8_t low) {
 
+    cpu->pc += 1;
     cpu->memory[cpu->sp - 1] = (cpu->pc >> 8) & 0xFF;
     cpu->memory[cpu->sp - 2] = cpu->pc & 0xFF;
     //    printf(" - %x, %x, %x, ret: \n", cpu->sp, cpu->memory[cpu->sp - 1], cpu->memory[cpu-> sp - 2]);
@@ -328,7 +331,7 @@ void call(struct CPU *cpu, uint8_t high, uint8_t low) {
 
 void ret_function(struct CPU *cpu) {
     uint16_t addr = (cpu->memory[cpu->sp + 1] << 8) + cpu->memory[cpu->sp];
-    cpu->pc = addr;
+    cpu->pc = addr + 1;
     cpu->sp += 2;
 }
 
