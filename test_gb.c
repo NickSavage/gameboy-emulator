@@ -168,10 +168,10 @@ void test_call_ret() {
     call(&cpu, 0x0a, 0x00);
     assert(cpu.pc == 0xa00);
     assert(cpu.sp == 0xaab9);
-    assert(cpu.memory[cpu.sp] == 0x23);
+    assert(cpu.memory[cpu.sp] == 0x25);
     assert(cpu.memory[cpu.sp + 1] == 0x01);
     ret_function(&cpu);
-    assert(cpu.pc == 0x123);
+    assert(cpu.pc == 0x125);
     assert(cpu.sp == 0xaabb);
 }
 
@@ -209,6 +209,16 @@ void test_bit() {
     
 }
 
+void test_rla() {
+    struct CPU cpu;
+
+    assert(get_c_flag(&cpu) == 0);
+    load_reg(&cpu, REG_A, 0b00010001);
+    rla(&cpu);
+    assert(get_c_flag(&cpu) == 1);
+    assert(cpu.regs[REG_A] == 0b00001000);
+}
+
 int main() {
     test_add();
     test_add_16();
@@ -225,5 +235,6 @@ int main() {
     test_swap();
     test_srl();
     test_bit();
+    test_rla();
     printf("\n");
 }

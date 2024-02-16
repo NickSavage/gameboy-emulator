@@ -59,7 +59,7 @@ void init_screen(struct CPU *cpu) {
 void init_cpu(struct CPU *cpu) {
 
     cpu->clock = 0;
-    cpu->pc = 0x0100;
+    //cpu->pc = 0x0100;
     cpu->sp = 0xFFFE;
     cpu->memory[0xFF44] = 144; // plugged, relates to vblank
     cpu->regs[REG_A] = 0x01;
@@ -299,6 +299,10 @@ int parse_opcode(struct CPU *cpu) {
 	
 	cpu->clock += 1;
 	break;
+    case (0x27):
+	// daa
+	daa(cpu);
+	break;
     case (0x32):
 
 	// ld (HL-), a
@@ -434,27 +438,27 @@ int parse_opcode(struct CPU *cpu) {
 	uint8_t cc = (first & 0b00011000) >> 2;
 	addr = (third << 8) + second;
 	//printf(" call [%x]", addr);
-	cpu->pc += 2;
+	//	cpu->pc += 2;
 
 	if ((cc == COND_NZ) && !(get_z_flag(cpu) == 1)) {
 	    call(cpu, third, second);
 	    cpu->clock += 3;
 	    
-	}
-	if ((cc == COND_Z) && (get_z_flag(cpu) == 1)) {
+	} else if ((cc == COND_Z) && (get_z_flag(cpu) == 1)) {
+	    call(cpu, third, second);
+	    cpu->clock += 3;
+	    
+	} else if ((cc == COND_NC) && !(check_flag_c(cpu) == 1)) {
+	    call(cpu, third, second);
+	    cpu->clock += 3;
+	    
+	} else if ((cc == COND_C) && (check_flag_c(cpu) == 1)) {
 	    call(cpu, third, second);
 	    cpu->clock += 3;
 	    
 	}
-	if ((cc == COND_NC) && !(check_flag_c(cpu) == 1)) {
-	    call(cpu, third, second);
-	    cpu->clock += 3;
-	    
-	}
-	if ((cc == COND_C) && (check_flag_c(cpu) == 1)) {
-	    call(cpu, third, second);
-	    cpu->clock += 3;
-	    
+	else {
+	    cpu->pc += 2;
 	}
 	break;
 	
@@ -462,7 +466,7 @@ int parse_opcode(struct CPU *cpu) {
 	// call nn
 	addr = (third << 8) + second;
 	//printf(" call [%x]", addr);
-	cpu->pc += 2;
+	//cpu->pc += 2;
 	call(cpu, third, second);
 
 	//printf("%x, %x, %x \n", cpu->sp, cpu->memory[cpu->sp + 1], cpu->memory[cpu-> sp]);
@@ -510,10 +514,16 @@ int parse_opcode(struct CPU *cpu) {
 	call(cpu, 0, addr);
 	break;
     case (0xf8):
+	// ld hp, sp + e8
 	uint16_t data = cpu->sp + (int8_t)second;
 	set_z_flag(cpu, 0);
 	set_n_flag(cpu, 0);
 	// FINISH
+	cpu->regs[REG_H] = data >> 8;
+	cpu->regs[REG_L] = data & 0xFF;
+
+	ret = 1;
+	cpu->clock += 2;
 	
 	break;
     default:

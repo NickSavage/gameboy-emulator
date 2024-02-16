@@ -22,6 +22,9 @@ void srl(struct CPU *cpu, uint8_t reg);
 void bit(struct CPU *cpu, uint8_t n, uint8_t reg);
 void cpl(struct CPU *cpu);
 void ccf(struct CPU *cpu);
+void rla(struct CPU *cpu);
+void daa(struct CPU *cpu);
+
 
 void load_reg(struct CPU *cpu, unsigned char reg, unsigned char amount);
 void load_reg_16(struct CPU *cpu, unsigned char reg, unsigned char low, unsigned char high);

@@ -124,6 +124,31 @@ void ccf(struct CPU *cpu) {
     }
 }
 
+void rla(struct CPU *cpu) {
+    uint8_t temp = cpu->regs[REG_A] & 0b00000001;
+    cpu->regs[REG_A] = (cpu->regs[REG_A] >> 1) + (get_c_flag(cpu) << 7);
+    set_c_flag(cpu, temp);
+}
+void daa(struct CPU *cpu) {
+    // Extract the lower nibble (4 bits) and the upper nibble (4 bits) of the accumulator
+    unsigned char lower_nibble = cpu->regs[REG_A] & 0x0F;
+    unsigned char upper_nibble = (cpu->regs[REG_A] >> 4) & 0x0F;
+
+    // Check if the lower nibble is greater than 9 or the half-carry flag is set
+    if (lower_nibble > 9 || get_h_flag(cpu)) {
+         cpu->regs[REG_A] += 6; // Increment accumulator by 6
+	 set_h_flag(cpu, ((int)cpu->regs[REG_A] & 0x0F) < 6); // Update half-carry flag
+    }
+
+    // Check if the upper nibble is greater than 9 or the carry flag is set
+    if (upper_nibble > 9 || get_c_flag(cpu)) {
+	cpu->regs[REG_A] += 0x60;
+	set_c_flag(cpu, 1);
+    }
+}
+
+
+
 void load_reg(struct CPU *cpu, unsigned char reg, unsigned char amount) {
     cpu->regs[reg] = amount;
 }
@@ -327,7 +352,7 @@ void pop(struct CPU *cpu, uint8_t reg) {
 }
 void call(struct CPU *cpu, uint8_t high, uint8_t low) {
 
-    cpu->pc += 1;
+    cpu->pc += 2;
     cpu->memory[cpu->sp - 1] = (cpu->pc >> 8) & 0xFF;
     cpu->memory[cpu->sp - 2] = cpu->pc & 0xFF;
     //    printf(" - %x, %x, %x, ret: \n", cpu->sp, cpu->memory[cpu->sp - 1], cpu->memory[cpu-> sp - 2]);
