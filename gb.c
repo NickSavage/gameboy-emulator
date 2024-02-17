@@ -59,7 +59,7 @@ void init_screen(struct CPU *cpu) {
 void init_cpu(struct CPU *cpu) {
 
     cpu->clock = 0;
-    //cpu->pc = 0x0100;
+    cpu->pc = 0x0100;
     cpu->sp = 0xFFFE;
     cpu->memory[0xFF44] = 144; // plugged, relates to vblank
     cpu->regs[REG_A] = 0x01;
@@ -362,17 +362,21 @@ int parse_opcode(struct CPU *cpu) {
 	cc = (first & 0b00011000) >> 3;
 	//printf(" ret %d", cc);
 	if (cc == COND_Z && get_z_flag(cpu) == 1) {
+	    printf("aaa");
 	    ret_function(cpu);
 	    cpu->clock += 4;
 	} else if (cc == COND_NZ && get_z_flag(cpu) == 0) {
+	    printf("bbb");
 	    ret_function(cpu);
 	    cpu->clock += 4;
 	    
 	} else if (cc == COND_C && get_c_flag(cpu) == 1) {
+	    printf("ccc");
 	    ret_function(cpu);
 	    cpu->clock += 4;
 	    
 	} else if (cc == COND_NC && get_c_flag(cpu) == 0) {
+	    printf("ddd");
 	    ret_function(cpu);
 	    cpu->clock += 4;
 	} else {
@@ -383,9 +387,9 @@ int parse_opcode(struct CPU *cpu) {
 	// ret
 
 	//printf(" ret");
+	    printf("eee");
 	ret_function(cpu);
 	cpu->clock += 3;
-	cpu->pc -= 1;
 
 	break;
 	    
@@ -435,30 +439,37 @@ int parse_opcode(struct CPU *cpu) {
 	
     case (0xc4): case(0xd4): case (0xcc): case(0xdc):
 	//call cc, nn
-	uint8_t cc = (first & 0b00011000) >> 2;
+	uint8_t cc = (first & 0b00011000) >> 3;
 	addr = (third << 8) + second;
 	//printf(" call [%x]", addr);
 	//	cpu->pc += 2;
 
 	if ((cc == COND_NZ) && !(get_z_flag(cpu) == 1)) {
+	    cpu->pc += 3;
 	    call(cpu, third, second);
-	    cpu->clock += 3;
+	    cpu->clock += 5;
 	    
 	} else if ((cc == COND_Z) && (get_z_flag(cpu) == 1)) {
+	    cpu->pc += 3;
 	    call(cpu, third, second);
-	    cpu->clock += 3;
+	    cpu->clock += 5;
 	    
 	} else if ((cc == COND_NC) && !(check_flag_c(cpu) == 1)) {
+
+	    cpu->pc += 3;
 	    call(cpu, third, second);
-	    cpu->clock += 3;
+	    cpu->clock += 5;
 	    
 	} else if ((cc == COND_C) && (check_flag_c(cpu) == 1)) {
+
+	    cpu->pc += 3;
 	    call(cpu, third, second);
-	    cpu->clock += 3;
+	    cpu->clock += 5;
 	    
 	}
 	else {
 	    cpu->pc += 2;
+	    cpu->clock += 2;
 	}
 	break;
 	
@@ -467,6 +478,8 @@ int parse_opcode(struct CPU *cpu) {
 	addr = (third << 8) + second;
 	//printf(" call [%x]", addr);
 	//cpu->pc += 2;
+
+	cpu->pc += 3;
 	call(cpu, third, second);
 
 	//printf("%x, %x, %x \n", cpu->sp, cpu->memory[cpu->sp + 1], cpu->memory[cpu-> sp]);
@@ -477,10 +490,9 @@ int parse_opcode(struct CPU *cpu) {
 	break;
     case (0xd9):
 	// reti
-	//printf("reti");
+	printf("reti");
 	ret_function(cpu);
 	cpu->ime = 1;
-	cpu->pc -= 1; // with vblank interrupts, it sets the counter one higher than it should be
 	break;
     case(0xe2):
 	addr = 0xFF00 + cpu->regs[REG_C];
@@ -511,6 +523,8 @@ int parse_opcode(struct CPU *cpu) {
 	// rst 
 	addr = (first & 00111000) >> 3;
 	//printf( "rst %x", addr);
+
+	cpu->pc += 3;
 	call(cpu, 0, addr);
 	break;
     case (0xf8):
@@ -1136,6 +1150,7 @@ void handle_interrupts(struct CPU *cpu) {
 	if ((cpu->memory[0xffff] & 0x01) == 1) {
 	    // vblank
 	    //printf("vblank int");
+	    printf("vblank");
 	    call(cpu, 0x00, 0x40);
 	}
     }
