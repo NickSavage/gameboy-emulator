@@ -354,14 +354,14 @@ void call(struct CPU *cpu, uint8_t high, uint8_t low) {
 
     cpu->memory[cpu->sp - 1] = (cpu->pc >> 8) & 0xFF;
     cpu->memory[cpu->sp - 2] = cpu->pc & 0xFF;
-    printf(" - call %x, old: %x, %x, \n", (high << 8) + low, cpu->memory[cpu->sp - 1], cpu->memory[cpu-> sp - 2]);
+    //printf(" - call %x, old: %x, %x, \n", (high << 8) + low, cpu->memory[cpu->sp - 1], cpu->memory[cpu-> sp - 2]);
     cpu->sp -= 2;
     cpu->pc = (high << 8) + low;
 }
 
 void ret_function(struct CPU *cpu) {
     uint16_t addr = (cpu->memory[cpu->sp + 1] << 8) + cpu->memory[cpu->sp];
-    printf(" - ret %X,%x, %x\n", addr, cpu->pc, cpu->sp);
+    //printf(" - ret %X,%x, %x\n", addr, cpu->pc, cpu->sp);
     cpu->pc = addr - 1;
     cpu->sp += 2;
 }

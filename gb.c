@@ -143,7 +143,7 @@ int parse_cb_opcode(struct CPU *cpu, int pc) {
     uint8_t num;
     uint16_t addr;
     uint8_t reg;
-    int result = 0;
+    int result = 1;
     switch(first) {
     case (0x30): case (0x31): case(0x32): case(0x33): case(0x34): case(0x35): case(0x36): case(0x37):
 	reg = first & 0b00000111;
@@ -327,14 +327,14 @@ int parse_opcode(struct CPU *cpu) {
 	break;
 	
 	
-    case(0x06): case(0x16): case(0x26): case(0x0e): case(0x1e): case(0x2e): case(0x3e): case(0x4e):
+    case(0x06): case(0x16): case(0x26): case(0x0e): case(0x1e): case(0x2e): case(0x3e):
 	// ld r, n
 	//printByteAsBinary(second);
 	int reg = (first & 0b00111000) >> 3;
 	////printf(" ld %s, $%x", regNames[reg], second);
 	load_reg(cpu, reg, second);
-	ret = 1;
 
+	ret = 1;
 	cpu->clock += 1;
 	break;
     case (0x08):
@@ -351,7 +351,7 @@ int parse_opcode(struct CPU *cpu) {
 	// todo implement system pausing, for now this matches the right clock speed
 	break;
 
-    case (0x90):case (0x91):case (0x92):case (0x93):case (0x94):case (0x95):case (0x96):case (0x97):
+    case (0x90):case (0x91):case (0x92):case (0x93):case (0x94):case (0x95):case (0x97):
 	reg = (first & 0b00000111);
 	//printf(" sub a, %s", regNames[reg]);
 	sub(cpu, cpu->regs[reg]);
@@ -362,21 +362,17 @@ int parse_opcode(struct CPU *cpu) {
 	cc = (first & 0b00011000) >> 3;
 	//printf(" ret %d", cc);
 	if (cc == COND_Z && get_z_flag(cpu) == 1) {
-	    printf("aaa");
 	    ret_function(cpu);
 	    cpu->clock += 4;
 	} else if (cc == COND_NZ && get_z_flag(cpu) == 0) {
-	    printf("bbb");
 	    ret_function(cpu);
 	    cpu->clock += 4;
 	    
 	} else if (cc == COND_C && get_c_flag(cpu) == 1) {
-	    printf("ccc");
 	    ret_function(cpu);
 	    cpu->clock += 4;
 	    
 	} else if (cc == COND_NC && get_c_flag(cpu) == 0) {
-	    printf("ddd");
 	    ret_function(cpu);
 	    cpu->clock += 4;
 	} else {
@@ -387,7 +383,6 @@ int parse_opcode(struct CPU *cpu) {
 	// ret
 
 	//printf(" ret");
-	    printf("eee");
 	ret_function(cpu);
 	cpu->clock += 3;
 
@@ -444,6 +439,11 @@ int parse_opcode(struct CPU *cpu) {
 	//printf(" call [%x]", addr);
 	//	cpu->pc += 2;
 
+	/*
+	  timing: this uses 3 bytes regardless of the condition.
+	  if the condition passes, a jump occurs, and the call functoin needs the pc in the right location
+	  if the condition fails, the emulator auto-adds one, so we only increment by 2
+	 */
 	if ((cc == COND_NZ) && !(get_z_flag(cpu) == 1)) {
 	    cpu->pc += 3;
 	    call(cpu, third, second);
@@ -462,7 +462,7 @@ int parse_opcode(struct CPU *cpu) {
 	    
 	} else if ((cc == COND_C) && (check_flag_c(cpu) == 1)) {
 
-	    cpu->pc += 3;
+	    cpu->pc += 3; 
 	    call(cpu, third, second);
 	    cpu->clock += 5;
 	    
@@ -490,9 +490,10 @@ int parse_opcode(struct CPU *cpu) {
 	break;
     case (0xd9):
 	// reti
-	printf("reti");
+	//	printf("reti");
 	ret_function(cpu);
 	cpu->ime = 1;
+	cpu->clock += 3;
 	break;
     case(0xe2):
 	addr = 0xFF00 + cpu->regs[REG_C];
@@ -515,18 +516,27 @@ int parse_opcode(struct CPU *cpu) {
 	break;
 	
     case(0xfb):
+	// ei
 	//printf(" ei");
 	cpu->ime = 1;
 	cpu->clock += 2;
 	break;
-    case(0xcf): case (0xdf): case( 0xef): case (0xff):
-	// rst 
-	addr = (first & 00111000) >> 3;
-	//printf( "rst %x", addr);
-
+    case (0xef):
+	// rst
 	cpu->pc += 3;
-	call(cpu, 0, addr);
+	call(cpu, 0, 0x28);
+	cpu->clock += 3;
 	break;
+	
+    /* case(0xcf): case (0xdf):: */
+    /* 	// rst  */
+    /* 	addr = (first & 00111000); */
+    /* 	//	printf( "rst %x", addr); */
+
+    /* 	cpu->pc += 3; */
+    /* 	call(cpu, 0, addr); */
+    /* 	cpu->clock += 3; */
+    /* 	break; */
     case (0xf8):
 	// ld hp, sp + e8
 	uint16_t data = cpu->sp + (int8_t)second;
@@ -540,6 +550,12 @@ int parse_opcode(struct CPU *cpu) {
 	cpu->clock += 2;
 	
 	break;
+    case (0xff):
+	
+	cpu->pc += 3;
+	call(cpu, 0, 0x38);
+	cpu->clock += 3;
+	break;
     default:
 	found = 0;
     }
@@ -550,7 +566,7 @@ int parse_opcode(struct CPU *cpu) {
 	//putchar('\n');
 	return ret;
     }
-    if (first == 0b00110110) {
+    if (first == 0x36) {
 	// ld [HL], n
 	//printByteAsBinary(second);
 	//printf("ld [HL], %d", second);
@@ -560,7 +576,7 @@ int parse_opcode(struct CPU *cpu) {
 	cpu->clock += 2;
 	ret = 1;
     }
-    else if ((first & 0b11111111) == 0b11111010 ) {
+    else if (first == 0xfa) {
 	// ld a, [nn]
 	//printByteAsBinary(second);
 	//putchar(' ');
@@ -573,7 +589,7 @@ int parse_opcode(struct CPU *cpu) {
 	cpu->clock += 3;
 	ret = 2;
     }
-    else if ((first & 0b11111111) == 0b11101010) {
+    else if (first == 0xea) {
 	// ld [nn], a
 	//printByteAsBinary(second);
 	//putchar(' ');
@@ -620,7 +636,7 @@ int parse_opcode(struct CPU *cpu) {
 	
 	cpu->memory[addr] = second;
 	ret = 1;
-	cpu->clock += 3;
+	cpu->clock += 2;
     }
     else if ((first & 0b11001111) == 0b00000001) {
 	// LD rr, nn
@@ -639,7 +655,7 @@ int parse_opcode(struct CPU *cpu) {
 	ret = 2;
 	cpu->clock += 2;
     }
-    else if ((first & 0b11111111) == 0b00001010) {
+    else if (first == 0x0a) {
 	// ld a, (BC)
 	
 	int addr = (cpu->regs[REG_B] << 8) + cpu->regs[REG_C];
@@ -648,7 +664,7 @@ int parse_opcode(struct CPU *cpu) {
 	cpu->regs[REG_A] = cpu->memory[addr];
 	cpu->clock += 1;
     }
-    else if ((first & 0b11111111) == 0b00011010) {
+    else if (first == 0x1a) {
 	// ld a, (DE)
 	
 	int addr = (cpu->regs[REG_D] << 8) + cpu->regs[REG_E];
@@ -657,7 +673,7 @@ int parse_opcode(struct CPU *cpu) {
 	cpu->regs[REG_A] = cpu->memory[addr];
 	cpu->clock += 1;
     }
-    else if (first == 0b00010010) {
+    else if (first == 0x12) {
 	// ld [DE], a
 	int addr = (cpu->regs[REG_D] << 8) + cpu->regs[REG_E];
 	
@@ -666,7 +682,7 @@ int parse_opcode(struct CPU *cpu) {
 
 	cpu->clock += 1;
     }
-    else if (first == 0b11110000) {
+    else if (first == 0xf0) {
 	// ldh a, 0xFF00 + n
 	//printf(" ldh a, [%x]", 0xFF00 + second);
 	cpu->regs[REG_A] = cpu->memory[0xFF00+second];
@@ -674,8 +690,8 @@ int parse_opcode(struct CPU *cpu) {
 
 	cpu->clock += 2;
     }
-    else if (first == 0b11100000) {
-	// ldh 
+    else if (first == 0xe0) {
+	// ldh (n), a
 	//printf(" ldh [%x], a - $%x", 0xFF00 + second, cpu->regs[REG_A]);
 	ret = 1;
 
@@ -715,7 +731,7 @@ int parse_opcode(struct CPU *cpu) {
 	cpu->clock += 1;
     }
     else if (first == 0x09) {
-	// add hl, de
+	// add hl, bc
 	//printf(" add hl, bc");
 	add_16(cpu, 2, (cpu->regs[REG_B] << 8) + cpu->regs[REG_C]);
 	cpu->clock += 1;
@@ -727,7 +743,7 @@ int parse_opcode(struct CPU *cpu) {
 	cpu->clock += 1;
     }
     else if (first == 0x29) {
-	// add hl, de
+	// add hl, hl
 	//printf(" add hl, hl");
 	add_16(cpu, 2, (cpu->regs[REG_H] << 8) + cpu->regs[REG_L]);
 	cpu->clock += 1;
@@ -740,7 +756,7 @@ int parse_opcode(struct CPU *cpu) {
 	
     /* 	ret = 1; */
     /* } */
-    else if ((first & 0b11111111) == 0b11111110) {
+    else if (first == 0xfe) {
 	//cp n
 	//printByteAsBinary(second);
 	//putchar(' ');
@@ -931,14 +947,6 @@ int parse_opcode(struct CPU *cpu) {
 	    cpu->clock += 1;
 	}
 	
-	//putchar('\n');
-	for (int i = 0; i < 8; i+=2) {
-	    //printf("%s%s:", regNames[i],regNames[i + 1]);
-	    //printByteAsBinary(cpu->regs[i]);
-	    //putchar(' ');
-	    //printByteAsBinary(cpu->regs[i+1]);
-	    //putchar('\n');
-	}
 	//putchar('\n');
 	//sleep(1);
     }
@@ -1226,8 +1234,10 @@ int main(int argc, char *argv[]) {
     //printf("%d", cpu.rom);
     
     while(running != 0) {
-	/* if (cpu.pc == 0) { */
-	/*     //printf("asdf"); */
+
+	/* if (cpu.pc > 0x2ba) { */
+	/*     output_memory(&cpu); */
+	/*     exit(0); */
 	/* } */
 	//printf("%x - $%x - ", cpu.pc, cpu.memory[cpu.pc]);
 	//printByteAsBinary(cpu.memory[cpu.pc]);
