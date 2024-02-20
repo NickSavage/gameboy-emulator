@@ -523,8 +523,8 @@ int parse_opcode(struct CPU *cpu) {
 	break;
     case (0xef):
 	// rst
-	cpu->pc += 3;
-	call(cpu, 0, 0x28);
+	cpu->pc += 1;
+	call(cpu, 0, 0x28 - 1);
 	cpu->clock += 3;
 	break;
 	
