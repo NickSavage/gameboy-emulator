@@ -143,7 +143,7 @@ int parse_cb_opcode(struct CPU *cpu, int pc) {
     uint8_t num;
     uint16_t addr;
     uint8_t reg;
-    int result = 1;
+    int result = 0;
     switch(first) {
     case (0x30): case (0x31): case(0x32): case(0x33): case(0x34): case(0x35): case(0x36): case(0x37):
 	reg = first & 0b00000111;
@@ -604,10 +604,11 @@ int parse_opcode(struct CPU *cpu) {
     }
     else if ((first & 0b11000111) == 0b01000110) {
 	// ld r, (HL)
+	int reg = (first & 0b00111000) >> 3;
 	int addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
 	//printf(" -- %d --", addr);
-	//printf(" ld a, [HL]");
-	load_reg(cpu, REG_A, cpu->memory[addr]);
+	printf(" ld %s, [HL] - %X, %x \n ", regNames[reg], addr, cpu->memory[addr]);
+	load_reg(cpu, reg, cpu->memory[addr]);
 	cpu->clock += 1;
     }
     else if ((first & 0b11111000) == 0b01110000) {
