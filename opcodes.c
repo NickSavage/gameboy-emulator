@@ -124,11 +124,19 @@ void ccf(struct CPU *cpu) {
     }
 }
 
-void rla(struct CPU *cpu) {
-    uint8_t temp = cpu->regs[REG_A] & 0b00000001;
-    cpu->regs[REG_A] = (cpu->regs[REG_A] >> 1) + (get_c_flag(cpu) << 7);
+
+void rr(struct CPU *cpu, uint8_t reg) {
+    uint8_t temp = cpu->regs[reg] & 0b00000001;
+    cpu->regs[reg] = (cpu->regs[reg] >> 1) + (get_c_flag(cpu) << 7);
     set_c_flag(cpu, temp);
 }
+
+void rl(struct CPU *cpu, uint8_t reg) {
+    uint8_t temp = cpu->regs[reg] >> 7; // Save the leftmost bit
+    cpu->regs[reg] = (cpu->regs[reg] << 1) | get_c_flag(cpu); // Shift left and add the carry flag to the rightmost bit
+    set_c_flag(cpu, temp); // Set the carry flag to what the leftmost bit was
+}
+
 void daa(struct CPU *cpu) {
     // Extract the lower nibble (4 bits) and the upper nibble (4 bits) of the accumulator
     unsigned char lower_nibble = cpu->regs[REG_A] & 0x0F;

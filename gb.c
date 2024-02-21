@@ -145,6 +145,17 @@ int parse_cb_opcode(struct CPU *cpu, int pc) {
     uint8_t reg;
     int result = 0;
     switch(first) {
+    case (0x10): case(0x11): case (0x12): case(0x13): case (0x14): case (0x15): case (0x17):
+
+	reg = first & 0b00000111;
+	rl(cpu, reg);
+	break;
+    case (0x18): case(0x19): case (0x1a): case(0x1b): case (0x1c): case (0x1d): case (0x1f):
+
+	reg = first & 0b00000111;
+	rr(cpu, reg);
+	break;
+	
     case (0x30): case (0x31): case(0x32): case(0x33): case(0x34): case(0x35): case(0x36): case(0x37):
 	reg = first & 0b00000111;
 	//	//printf(" swap %s", regNames[reg]);
@@ -234,7 +245,7 @@ int parse_cb_opcode(struct CPU *cpu, int pc) {
 	cpu->memory[addr] &= 1 << num;
 	break;
     default:
-	//printf("unimplemented cb opcode");
+	printf("unimplemented cb opcode");
 	exit(0);
 
     }
@@ -284,6 +295,16 @@ int parse_opcode(struct CPU *cpu) {
 	////printf(" inc %s", regNames[reg]);
 	add(cpu, reg, 1);
 
+	break;
+    case (0x17):
+	// rla
+
+	rl(cpu, REG_A);
+	break;
+    case (0x1f):
+	// rra
+
+	rr(cpu, REG_A);
 	break;
     case (0x22):
 
@@ -607,7 +628,7 @@ int parse_opcode(struct CPU *cpu) {
 	int reg = (first & 0b00111000) >> 3;
 	int addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
 	//printf(" -- %d --", addr);
-	printf(" ld %s, [HL] - %X, %x \n ", regNames[reg], addr, cpu->memory[addr]);
+	//	printf(" ld %s, [HL] - %X, %x \n ", regNames[reg], addr, cpu->memory[addr]);
 	load_reg(cpu, reg, cpu->memory[addr]);
 	cpu->clock += 1;
     }
@@ -1253,8 +1274,10 @@ int main(int argc, char *argv[]) {
 	printf("L:%02X ", cpu.regs[REG_L]);
 	printf("SP:%04X ", cpu.sp);
 	printf("PC:%04X ", cpu.pc);
-	printf("PCMEM:%02X,%02X,%02X,%02X", cpu.memory[cpu.pc], cpu.memory[cpu.pc+1], cpu.memory[cpu.pc+2], cpu.memory[cpu.pc+3]);
+	printf("PCMEM:%02X,%02X,%02X,%02X ", cpu.memory[cpu.pc], cpu.memory[cpu.pc+1], cpu.memory[cpu.pc+2], cpu.memory[cpu.pc+3]);
+	printf("LY:%x", cpu.memory[0xFF44]);
 	putchar('\n');
+	handle_interrupts(&cpu);
 	ret = parse_opcode(&cpu);
 	//output_registers(&cpu);
 	if (ret == -1) {
@@ -1294,7 +1317,6 @@ int main(int argc, char *argv[]) {
 	    cpu.clock = 0;
 	}
 	//SDL_Delay(2000);
-	handle_interrupts(&cpu);
 
     }
     //putchar('\n');

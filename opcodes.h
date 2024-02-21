@@ -22,7 +22,8 @@ void srl(struct CPU *cpu, uint8_t reg);
 void bit(struct CPU *cpu, uint8_t n, uint8_t reg);
 void cpl(struct CPU *cpu);
 void ccf(struct CPU *cpu);
-void rla(struct CPU *cpu);
+void rr(struct CPU *cpu, uint8_t reg);
+void rl(struct CPU *cpu, uint8_t reg);
 void daa(struct CPU *cpu);
 
 
