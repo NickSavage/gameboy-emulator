@@ -308,13 +308,17 @@ void or(struct CPU *cpu, unsigned char reg) {
 }
 
 
-void xor(struct CPU *cpu, unsigned char reg) {
-    set_h_flag(cpu, ((cpu->regs[REG_A] & 0x0F) ^ (cpu->regs[reg] & 0x0F)) & 0x10);
-    cpu->regs[REG_A] = cpu->regs[REG_A] ^ cpu->regs[reg];
+void xor_n(struct CPU *cpu, uint8_t amount) {
+    set_h_flag(cpu, ((cpu->regs[REG_A] & 0x0F) ^ (amount & 0x0F)) & 0x10);
+    cpu->regs[REG_A] = cpu->regs[REG_A] ^ amount;
 
     set_z_flag(cpu, REG_A);
     set_n_flag(cpu, 0);
     set_c_flag(cpu, 0);
+}
+
+void xor(struct CPU *cpu, unsigned char reg) {
+    xor_n(cpu, cpu->regs[reg]);
 }
 
 void push(struct CPU *cpu, uint8_t reg) {

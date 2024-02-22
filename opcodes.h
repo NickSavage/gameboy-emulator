@@ -40,6 +40,7 @@ void compare(struct CPU *cpu, unsigned char amount);
 void and(struct CPU *cpu, unsigned char amount);
 void or_8(struct CPU *cpu, uint8_t amount);
 void or(struct CPU *cpu, unsigned char reg);
+void xor_n(struct CPU *cpu, uint8_t amount);
 void xor(struct CPU *cpu, unsigned char reg);
 
 void push(struct CPU *cpu, uint8_t reg);

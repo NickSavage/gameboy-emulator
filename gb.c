@@ -70,6 +70,7 @@ void init_cpu(struct CPU *cpu) {
     cpu->regs[REG_E] = 0xD8;
     cpu->regs[REG_H] = 0x01;
     cpu->regs[REG_L] = 0x4D;
+    cpu->halt = 0;
     for (int i = 0x0000; i < 0x7fff; i++) {
 	cpu->memory[i] = cpu->rom[i];
     }
@@ -279,6 +280,12 @@ int parse_opcode(struct CPU *cpu) {
 	
 	cpu->clock += 1;
 	break;
+    case (0x10):
+	// stop
+
+	cpu->halt = 1;
+	
+	break;
     case (0x12):
 	
 	// ld [DE], a
@@ -368,6 +375,7 @@ int parse_opcode(struct CPU *cpu) {
 	break;
     case (0x76):
 	//printf(" halt");
+	cpu->halt = 1;
 	/* ret = -1; */
 	// todo implement system pausing, for now this matches the right clock speed
 	break;
@@ -527,6 +535,12 @@ int parse_opcode(struct CPU *cpu) {
 	and(cpu, second);
 	ret = 1;
 	cpu->clock += 1;
+	break;
+    case (0xee):
+	// xor a, n
+	xor_n(cpu, second);
+	ret = 1;
+	cpu-> clock += 1;
 	break;
     case(0xf6):
 	// or a, n
@@ -1176,7 +1190,8 @@ void render_frame(struct CPU *cpu, struct PPU *ppu, SDL_Texture *tex, SDL_Render
 }
 
 void handle_interrupts(struct CPU *cpu) {
-    if (cpu->ime == 1) {
+    if (cpu->ime == 1 || cpu->halt == 1) {
+	cpu->halt = 0;
 	if ((cpu->memory[0xffff] & 0x01) == 1) {
 	    // vblank
 	    //printf("vblank int");
@@ -1257,6 +1272,7 @@ int main(int argc, char *argv[]) {
     
     while(running != 0) {
 
+	//	printf("clock: %d ", cpu.clock);
 	/* if (cpu.pc > 0x2ba) { */
 	/*     output_memory(&cpu); */
 	/*     exit(0); */
@@ -1264,28 +1280,30 @@ int main(int argc, char *argv[]) {
 	//printf("%x - $%x - ", cpu.pc, cpu.memory[cpu.pc]);
 	//printByteAsBinary(cpu.memory[cpu.pc]);
 	//putchar(' ');
-	printf("A:%02X ", cpu.regs[REG_A]);
-	printf("F:%02X ", cpu.regs[REG_F]);
-	printf("B:%02X ", cpu.regs[REG_B]);
-	printf("C:%02X ", cpu.regs[REG_C]);
-	printf("D:%02X ", cpu.regs[REG_D]);
-	printf("E:%02X ", cpu.regs[REG_E]);
-	printf("H:%02X ", cpu.regs[REG_H]);
-	printf("L:%02X ", cpu.regs[REG_L]);
-	printf("SP:%04X ", cpu.sp);
-	printf("PC:%04X ", cpu.pc);
-	printf("PCMEM:%02X,%02X,%02X,%02X ", cpu.memory[cpu.pc], cpu.memory[cpu.pc+1], cpu.memory[cpu.pc+2], cpu.memory[cpu.pc+3]);
-	printf("LY:%x", cpu.memory[0xFF44]);
-	putchar('\n');
-	handle_interrupts(&cpu);
-	ret = parse_opcode(&cpu);
-	//output_registers(&cpu);
-	if (ret == -1) {
-	    // output_memory(&cpu);
-	    break;
+	if (!(cpu.halt == 1)) {
+	    printf("A:%02X ", cpu.regs[REG_A]);
+	    printf("F:%02X ", cpu.regs[REG_F]);
+	    printf("B:%02X ", cpu.regs[REG_B]);
+	    printf("C:%02X ", cpu.regs[REG_C]);
+	    printf("D:%02X ", cpu.regs[REG_D]);
+	    printf("E:%02X ", cpu.regs[REG_E]);
+	    printf("H:%02X ", cpu.regs[REG_H]);
+	    printf("L:%02X ", cpu.regs[REG_L]);
+	    printf("SP:%04X ", cpu.sp);
+	    printf("PC:%04X ", cpu.pc);
+	    printf("PCMEM:%02X,%02X,%02X,%02X ", cpu.memory[cpu.pc], cpu.memory[cpu.pc+1], cpu.memory[cpu.pc+2], cpu.memory[cpu.pc+3]);
+	    //	    printf("LY:%x", cpu.memory[0xFF44]);
+	    putchar('\n');
+	    handle_interrupts(&cpu);
+	    ret = parse_opcode(&cpu);
+	    //output_registers(&cpu);
+	    if (ret == -1) {
+		// output_memory(&cpu);
+		break;
+	    }
+	    cpu.pc += ret;
+	    cpu.pc++;
 	}
-	cpu.pc += ret;
-	cpu.pc++;
 	while (SDL_PollEvent(&event)) {
 	    if (event.type == SDL_KEYDOWN) {
 		if (event.key.keysym.sym == SDLK_q) {
