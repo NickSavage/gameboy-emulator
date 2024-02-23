@@ -1332,7 +1332,7 @@ int main(int argc, char *argv[]) {
 	cpu.clock += 1;
 	if (cpu.clock >= 114) {
 	    render_frame(&cpu, &ppu, tex, ren);
-	    cpu.clock = 0;
+	    cpu.clock = cpu.clock % 114;
 	}
 	//SDL_Delay(2000);
 
