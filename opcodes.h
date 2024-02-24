@@ -31,6 +31,7 @@ void load_reg(struct CPU *cpu, unsigned char reg, unsigned char amount);
 void load_reg_16(struct CPU *cpu, unsigned char reg, unsigned char low, unsigned char high);
 void set_mem(struct CPU *cpu, uint16_t addr, uint8_t amount);
 void add(struct CPU *cpu, uint8_t reg, unsigned char amount);
+void inc(struct CPU *cpu, uint8_t reg);
 void add_16(struct CPU *cpu, uint8_t reg, uint16_t amount);
 void adc(struct CPU *cpu, uint8_t amount);
 void sub(struct CPU *cpu, unsigned char amount);

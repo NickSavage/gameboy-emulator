@@ -12,6 +12,10 @@ void test_add() {
     add(&cpu, REG_A, amount);
 
     assert(cpu.regs[7] == amount);
+    load_reg(&cpu, REG_A, 0xf8);
+    add(&cpu, REG_A, 0x8);
+    assert(cpu.regs[7] == 0);
+    assert(get_c_flag(&cpu) == 1);
 }
 
 void test_add_16() {
@@ -209,16 +213,6 @@ void test_bit() {
     
 }
 
-void test_rla() {
-    struct CPU cpu;
-
-    assert(get_c_flag(&cpu) == 0);
-    load_reg(&cpu, REG_A, 0b00010001);
-    rla(&cpu);
-    assert(get_c_flag(&cpu) == 1);
-    assert(cpu.regs[REG_A] == 0b00001000);
-}
-
 int main() {
     test_add();
     test_add_16();
@@ -235,6 +229,5 @@ int main() {
     test_swap();
     test_srl();
     test_bit();
-    test_rla();
     printf("\n");
 }

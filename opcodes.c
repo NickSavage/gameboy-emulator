@@ -187,6 +187,11 @@ void set_mem(struct CPU *cpu, uint16_t addr, uint8_t amount) {
 
 void add(struct CPU *cpu, uint8_t reg, unsigned char amount) {
     set_h_flag(cpu, ((cpu->regs[reg] & 0x0F) + (amount & 0x0F)) & 0x10);
+    if ((cpu->regs[reg] + amount) > 255) {
+	set_c_flag(cpu, 1);
+    } else {
+	set_c_flag(cpu, 0);
+    }
     cpu->regs[reg] += amount;
 
     set_z_flag(cpu, reg);
@@ -195,12 +200,17 @@ void add(struct CPU *cpu, uint8_t reg, unsigned char amount) {
     
     cpu->regs[REG_F] |= 0 << FLAG_N;
 
-    //    printf("%d, %d", cpu->regs[reg], amount);
-    if ((cpu->regs[reg]) < 0) {
-	cpu->regs[REG_F] |= 1 << FLAG_C;
-    } else {
-	cpu->regs[REG_F] |= 0 << FLAG_C;
-    }
+}
+
+void inc(struct CPU *cpu, uint8_t reg) {
+    
+    set_h_flag(cpu, ((cpu->regs[reg] & 0x0F) + (1 & 0x0F)) & 0x10);
+    cpu->regs[reg] += 1;
+    set_z_flag(cpu, reg);
+
+    set_n_flag(cpu, 0);
+    
+    cpu->regs[REG_F] |= 0 << FLAG_N;
 }
 
 void add_16(struct CPU *cpu, uint8_t reg, uint16_t amount) {
@@ -255,6 +265,11 @@ void decrement_8(struct CPU *cpu, uint8_t reg) {
 }
 
 void sub(struct CPU *cpu, unsigned char amount) {
+    if ((cpu->regs[REG_A] & 0xF) < (amount & 0xF)) {
+	set_h_flag(cpu, 1);
+    } else {
+	set_h_flag(cpu, 0);
+    }
     cpu->regs[REG_A] -= amount;
     
     set_z_flag(cpu, REG_A);
@@ -285,7 +300,8 @@ void compare(struct CPU *cpu, unsigned char amount) {
 }
 
 void and(struct CPU *cpu, unsigned char amount) {
-    set_h_flag(cpu, ((cpu->regs[REG_A] & 0x0F) + (amount & 0x0F)) & 0x10);
+    set_h_flag(cpu, 1);
+    //    set_h_flag(cpu, ((cpu->regs[REG_A] & 0x0F) + (amount & 0x0F)) & 0x10);
     set_n_flag(cpu, 0);
     set_c_flag(cpu, 0);
 

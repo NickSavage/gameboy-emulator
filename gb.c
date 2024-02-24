@@ -312,7 +312,7 @@ int parse_opcode(struct CPU *cpu) {
 	// inc r
 	reg = (first & 0b00111000) >> 3;
 	////printf(" inc %s", regNames[reg]);
-	add(cpu, reg, 1);
+	inc(cpu, reg);
 
 	break;
     case (0x17):
@@ -359,7 +359,7 @@ int parse_opcode(struct CPU *cpu) {
 	// inc [hl]
 	////printf(" inc [hl]");
 	addr = (cpu->regs[REG_H] << 8) + cpu->regs[REG_L];
-	cpu->memory[addr] +=1;
+	cpu->memory[addr] += 1;
 
 	break;
 	
